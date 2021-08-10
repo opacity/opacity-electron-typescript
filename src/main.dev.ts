@@ -11,20 +11,23 @@
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 import path from 'path';
-import keytar from 'keytar';
 import { app, BrowserWindow, shell, ipcMain } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
-global.fetch = require('node-fetch');
 
-import { Account } from '../ts-client-library/packages/account-management';
-import {
-  WebAccountMiddleware,
-  WebNetworkMiddleware,
-} from '../ts-client-library/packages/middleware-web';
-import { hexToBytes } from '../ts-client-library/packages/util/src/hex';
-import { STORAGE_NODE as storageNode } from './config';
+// import { Account } from '../ts-client-library/packages/account-management';
+// import {
+//   WebAccountMiddleware,
+//   WebNetworkMiddleware,
+// } from '../ts-client-library/packages/middleware-web';
+// import { hexToBytes } from '../ts-client-library/packages/util/src/hex';
+// import { STORAGE_NODE as storageNode } from './config';
+// import { FileSystemObject } from '../ts-client-library/packages/filesystem-access/src/filesystem-object';
+// import {
+//   AccountSystem,
+//   MetadataAccess,
+// } from '../ts-client-library/packages/account-system/src';
 
 export default class AppUpdater {
   constructor() {
@@ -62,12 +65,12 @@ const installExtensions = async () => {
 };
 
 const createWindow = async () => {
-  if (
-    process.env.NODE_ENV === 'development' ||
-    process.env.DEBUG_PROD === 'true'
-  ) {
-    await installExtensions();
-  }
+  // if (
+  //   process.env.NODE_ENV === 'development' ||
+  //   process.env.DEBUG_PROD === 'true'
+  // ) {
+  //   await installExtensions();
+  // }
 
   const RESOURCES_PATH = app.isPackaged
     ? path.join(process.resourcesPath, 'assets')
@@ -84,6 +87,8 @@ const createWindow = async () => {
     icon: getAssetPath('icon.png'),
     webPreferences: {
       nodeIntegration: true,
+      enableRemoteModule: true,
+      webSecurity: false,
     },
   });
 
@@ -124,79 +129,6 @@ const createWindow = async () => {
 /**
  * Add event listeners...
  */
-ipcMain.on('login:restore', async (e) => {
-  let password = await keytar.getPassword('Opacity', 'Handle');
-  if (password) {
-    // mainWindow.webContents.send('login:success');
-    // await setAccount(password);
-    // refreshFolder('/');
-  }
-});
-
-ipcMain.on('handle:set', async (e, handleObject) => {
-  try {
-    if (handleObject.handle.length !== 128) {
-      throw Error("Then handle doesn't have the right length of 128 signs.");
-    }
-
-    console.log('HANDLE SET');
-
-    const cryptoMiddleware = new WebAccountMiddleware({
-      asymmetricKey: hexToBytes(handleObject.handle),
-    });
-    const netMiddleware = new WebNetworkMiddleware();
-    const account = new Account({
-      crypto: cryptoMiddleware,
-      net: netMiddleware,
-      storageNode,
-    });
-    account
-      .info()
-      .then((acc) => {
-        if (acc.account.apiVersion !== 2) {
-          console.log('This handle is old. Please Upgrade it.');
-          return;
-        }
-        if (acc.paymentStatus === 'paid') {
-          localStorage.setItem('key', handleObject.handle);
-          mainWindow?.webContents.send('login:success');
-          console.log('Success');
-        }
-      })
-      .catch((err: Error) => {
-        const account = new Account({
-          crypto: cryptoMiddleware,
-          net: netMiddleware,
-          storageNode: storageNode,
-        });
-        account
-          .needsMigration()
-          .then((res) => {
-            if (res) {
-              console.log('This handle is old. Please Upgrade it.');
-              return;
-            }
-          })
-          .catch((error: Error) => {
-            console.log('Error:', error.message);
-          });
-      });
-
-    // await setAccount(handleObject.handle);
-    // Call this function before saving the handle to see if the entered handle is correct
-    // eg. mixed up letters etc.
-    // await refreshFolder('/');
-
-    if (handleObject.saveHandle) {
-      // save handle to keyring
-      keytar.setPassword('Opacity', 'Handle', handleObject.handle);
-    }
-
-    // mainWindow?.webContents.send('login:success');
-  } catch (err) {
-    mainWindow?.webContents.send('login:failed', { error: err.message });
-  }
-});
 
 app.on('window-all-closed', () => {
   // Respect the OSX convention of having the application in memory even

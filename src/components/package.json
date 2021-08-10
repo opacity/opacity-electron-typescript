@@ -1,0 +1,89 @@
+{
+  "name": "opacity-electron",
+  "productName": "OpacityApp",
+  "version": "1.2.0",
+  "description": "Desktop Application for the Opacity cloud",
+  "author": "Martin V. Hubert",
+  "license": "MIT",
+  "engines": {
+    "node": ">=9.0.0",
+    "npm": ">=5.0.0",
+    "yarn": ">=1.0.0"
+  },
+  "browserslist": [
+    "last 4 versions"
+  ],
+  "main": "main.js",
+  "scripts": {
+    "compile": "tsc && copyfiles -f src/index.js build",
+    "prod": "cross-env NODE_ENV=production webpack --mode production --config webpack.build.config.js && electron --noDevServer .",
+    "start": "cross-env NODE_ENV=development webpack-dev-server --hot --host 0.0.0.0 --config=./webpack.dev.config.js --mode development",
+    "build": "cross-env NODE_ENV=production webpack --config webpack.build.config.js --mode production --display-error-details",
+    "package": "npm run build",
+    "postpackage": "electron-packager ./ --out=./release-builds --overwrite --icon=assets/icons/win/logo.ico"
+  },
+  "dependencies": {
+    "aes-256-gcm": "^1.0.3",
+    "async-mutex": "^0.2.3",
+    "axios": "^0.21.1",
+    "binary-file": "^0.2.3",
+    "bip32": "^2.0.5",
+    "bootstrap": "^4.5.0",
+    "clipboardy": "^2.3.0",
+    "core-js": "^3.6.5",
+    "electron-json-storage": "^4.2.0",
+    "electron-settings": "^3.2.0",
+    "esm": "^3.2.25",
+    "eth-crypto": "^1.6.0",
+    "filesize": "^6.1.0",
+    "form-data": "^3.0.0",
+    "keccak256": "^1.0.0",
+    "keytar": "^6.0.1",
+    "moment": "^2.26.0",
+    "react": "^16.13.1",
+    "react-bootstrap": "^1.0.1",
+    "react-dom": "^16.13.1",
+    "react-icons": "^3.10.0",
+    "react-moment": "^0.9.7",
+    "react-router-dom": "^5.2.0",
+    "react-toastify": "^6.0.5",
+    "simple-semaphore": "^2.1.0",
+    "styled-components": "^5.1.1",
+    "sweetalert2": "^9.15.1",
+    "sweetalert2-react-content": "^3.0.1",
+    "ts-node": "^10.1.0",
+    "typescript": "^4.3.5",
+    "web3": "^1.2.9"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.9.6",
+    "@babel/preset-env": "^7.9.6",
+    "@babel/preset-react": "^7.9.4",
+    "@babel/preset-typescript": "^7.14.5",
+    "babel-loader": "^8.1.0",
+    "babili-webpack-plugin": "^0.1.2",
+    "cross-env": "^7.0.2",
+    "css-loader": "^3.5.3",
+    "electron": "^9.4.0",
+    "electron-devtools-installer": "^3.0.0",
+    "electron-packager": "^14.2.1",
+    "file-loader": "^6.0.0",
+    "html-webpack-plugin": "^4.3.0",
+    "mini-css-extract-plugin": "^0.9.0",
+    "style-loader": "^1.2.0",
+    "loader-utils": "^2.0.0",
+    "ts-loader": "^8.3.0",
+    "webpack": "^4.43.0",
+    "webpack-cli": "^3.3.11",
+    "webpack-dev-server": "^3.10.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mavahu/opacity-electron.git"
+  },
+  "keywords": [],
+  "bugs": {
+    "url": "https://github.com/Mavahu/opacity-electron/issues"
+  },
+  "homepage": "https://github.com/Mavahu/opacity-electron#readme"
+}

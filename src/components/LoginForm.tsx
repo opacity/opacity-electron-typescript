@@ -1,9 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, FormEvent } from 'react';
 import Container from 'react-bootstrap/Container';
 import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
-import { ipcRenderer } from 'electron';
 import { useHistory } from 'react-router-dom';
+import { hexToBytes } from '../../ts-client-library/packages/util/src/hex';
+import {
+  WebAccountMiddleware,
+  WebNetworkMiddleware,
+} from '../../ts-client-library/packages/middleware-web/src';
+import { Account } from '../../ts-client-library/packages/account-management/src';
+import { STORAGE_NODE as storageNode } from '../config';
 
 const LoginForm = () => {
   const history = useHistory();
@@ -12,21 +18,73 @@ const LoginForm = () => {
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
-    ipcRenderer.once('login:success', () => {
-      ipcRenderer.removeAllListeners('login:failed');
-      console.log('------------SUCCESS-----------');
-    });
-
-    ipcRenderer.on('login:failed', (_, message) => {
-      setErrorMessage(message.error);
-    });
-
-    ipcRenderer.send('login:restore');
+    const restoredHandle = localStorage.getItem('handle');
+    if (!!restoredHandle) {
+      setHandle(restoredHandle);
+      login(restoredHandle);
+    }
   }, []);
 
-  const onSubmit = (e) => {
+  const login = (handle: string) => {
+    try {
+      if (handle.length !== 128) {
+        throw Error("Then handle doesn't have the right length of 128 signs.");
+      }
+
+      console.log('HANDLE SET');
+
+      const cryptoMiddleware = new WebAccountMiddleware({
+        asymmetricKey: hexToBytes(handle),
+      });
+      const netMiddleware = new WebNetworkMiddleware();
+      const account = new Account({
+        crypto: cryptoMiddleware,
+        net: netMiddleware,
+        storageNode,
+      });
+      account
+        .info()
+        .then((acc) => {
+          console.log('ACC:', acc.paymentStatus);
+          if (acc.account.apiVersion !== 2) {
+            console.log('This handle is old. Please Upgrade it.');
+            return;
+          }
+          if (acc.paymentStatus === 'paid') {
+            localStorage.setItem('handle', handle);
+            // mainWindow?.webContents.send('login:success');
+            console.log('Success');
+            history.push('/manager');
+          }
+        })
+        .catch(() => {
+          const account = new Account({
+            crypto: cryptoMiddleware,
+            net: netMiddleware,
+            storageNode: storageNode,
+          });
+          account
+            .needsMigration()
+            .then((res) => {
+              if (res) {
+                console.log('This handle is old. Please Upgrade it.');
+                return;
+              }
+            })
+            .catch((error: Error) => {
+              setErrorMessage(error.message);
+            });
+        });
+    } catch (err) {
+      setErrorMessage(err.message);
+    }
+  };
+
+  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    ipcRenderer.send('handle:set', { handle: handle, saveHandle: save });
+
+    login(handle);
+    // ipcRenderer.send('handle:set', { handle: handle, saveHandle: save });
   };
 
   return (
@@ -43,8 +101,8 @@ const LoginForm = () => {
           <Form.Check
             type="checkbox"
             label="Save handle"
-            value={save}
-            onChange={(e) => setSave(e.target.value)}
+            checked={save}
+            onChange={(e) => setSave(e.target.checked)}
           />
         </Form.Group>
         {(() => {
