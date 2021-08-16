@@ -65,7 +65,7 @@ const FolderTableItem: React.FC<FolderTableItemProps> = ({
             placement="top"
             overlay={<Tooltip id="delete_folder">Delete folder</Tooltip>}
           >
-            <Button onClick={() => deleteFunc(folder.handle, folder.name)}>
+            <Button onClick={() => deleteFunc(folder, false)}>
               <AiOutlineDelete></AiOutlineDelete>
             </Button>
           </OverlayTrigger>

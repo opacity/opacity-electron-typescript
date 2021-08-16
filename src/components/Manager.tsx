@@ -66,7 +66,6 @@ const Checkbox = Styled.input.attrs({
 const Manager = () => {
   const { dialog } = require('electron').remote;
   const { handle } = localStorage;
-
   const history = useHistory();
   const [folderPath, setFolderPath] = useState('/');
   //reference needed to use folderPath in useEffect
@@ -904,7 +903,7 @@ const Manager = () => {
                   folder={folder}
                   updatePath={updatePath}
                   downloadFunc={downloadFunc}
-                  deleteFunc={() => {}}
+                  deleteFunc={handleDeleteItem}
                   renameFunc={renameFunc}
                 />
               );

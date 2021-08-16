@@ -31,7 +31,7 @@ const LoginForm = () => {
         throw Error("Then handle doesn't have the right length of 128 signs.");
       }
 
-      console.log('HANDLE SET');
+      console.log('HANDLE SET', handle);
 
       const cryptoMiddleware = new WebAccountMiddleware({
         asymmetricKey: hexToBytes(handle),
