@@ -1,0 +1,68 @@
+.upload-progress-card {
+  width: 500px;
+
+  max-width: 100%;
+  position: absolute !important;
+  right: 5px;
+  bottom: 5px;
+  z-index: 1000;
+  transition: all;
+  transition-timing-function: ease-in;
+
+  .upload-progress-body {
+    max-height: 250px;
+    overflow: auto;
+  }
+
+  &.minimize {
+    .card-header {
+      .icon-down {
+        transform: rotate(180deg);
+      }
+    }
+
+    .upload-progress-body {
+      display: none;
+    }
+  }
+
+  .card-header {
+    height: 48px;
+    background: #2e6dde;
+    font-size: 13px;
+    line-height: 15px;
+    color: #ffffff;
+    display: flex;
+    justify-content: space-between;
+    padding: 20px;
+    align-items: center;
+
+    .icon-down {
+      content: url('../../assets/icons/down.svg');
+      cursor: pointer;
+    }
+
+    .icon-close {
+      content: url('../../assets/icons/close.svg');
+      cursor: pointer;
+      margin-left: 20px;
+    }
+  }
+  .percent {
+    width: 22px;
+    height: 22px;
+
+    .CircularProgressbar-path {
+      stroke: #2e6dde;
+    }
+
+    .CircularProgressbar-trail {
+      stroke: rgba(46, 109, 222, 0.29);
+    }
+  }
+
+  .list-group-item {
+    display: flex;
+    justify-content: space-between;
+  }
+}

@@ -56,8 +56,11 @@ import {
   UploadProgressEvent,
 } from '../../ts-client-library/packages/filesystem-access/src/events';
 import { isPathChild } from '../../ts-client-library/packages/util/src/path';
-import * as fs from 'fs';
 import { FileSystemObject } from '../../ts-client-library/packages/filesystem-access/src/filesystem-object';
+
+import UploadProgress from './UploadProgress';
+
+import '../styles/manager.global.css';
 
 const Checkbox = Styled.input.attrs({
   type: 'checkbox',
@@ -77,6 +80,13 @@ const Manager = () => {
   const [updateCurrentFolderSwitch, setUpdateCurrentFolderSwitch] = useState(
     false
   );
+  // For Upload Process Tracking
+  const [uploadingList, setUploadingList] = useState<Object[]>([]);
+  const currentUploadingList = React.useRef<Object[]>([]);
+
+  React.useEffect(() => {
+    currentUploadingList.current = uploadingList;
+  }, [uploadingList]);
 
   const defaultSorts = {
     name: {
@@ -307,7 +317,7 @@ const Manager = () => {
                     },
                   ]);
                 } else {
-                  blobArray = new Uint8Array([...blobArray, ...value]);
+                  blobArray = new Uint8Array([...blobArray, ...value!]);
                   pump();
                 }
               });
@@ -344,12 +354,12 @@ const Manager = () => {
           // console.log(currentPathRef.current, path);
 
           if (isPathChild(folderPath, path)) {
-            // setPageLoading(true)
-            // setUpdateCurrentFolderSwitch(!updateCurrentFolderSwitch)
+            setPageLoading(true);
+            setUpdateCurrentFolderSwitch(!updateCurrentFolderSwitch);
           }
 
           if (path == folderPath) {
-            // setPageLoading(true);
+            setPageLoading(true);
             // const folderMeta = await accountSystem.getFolderMetadataByPath(
             //   folderPath
             // );
@@ -366,17 +376,17 @@ const Manager = () => {
             // });
           }
         });
-        // upload.addEventListener(
-        //   UploadEvents.PROGRESS,
-        //   (e: UploadProgressEvent) => {
-        // let templist = currentUploadingList.current.slice();
-        // let index = templist.findIndex((ele) => ele.id === toastID);
-        // if (index > -1) {
-        //   templist[index].percent = e.detail.progress * 100;
-        //   setUploadingList(templist);
-        // }
-        //   }
-        // );
+        upload.addEventListener(
+          UploadEvents.PROGRESS,
+          (e: UploadProgressEvent) => {
+            let templist = currentUploadingList.current.slice();
+            let index = templist.findIndex((ele) => ele.id === toastID);
+            if (index > -1) {
+              templist[index].percent = e.detail.progress * 100;
+              setUploadingList(templist);
+            }
+          }
+        );
 
         const fileStream = polyfillReadableStreamIfNeeded<Uint8Array>(
           file.stream()
@@ -396,7 +406,12 @@ const Manager = () => {
           }
           await upload.finish();
 
-          console.log('Upload: folder Path -----', folderPath, path);
+          let templistdone = currentUploadingList.current.slice();
+          let index = templistdone.findIndex((ele) => ele.id === toastID);
+          if (index > -1) {
+            templistdone[index].percent = 100;
+            setUploadingList(templistdone);
+          }
           if (path === folderPath) {
             const folderMeta = await accountSystem.getFolderMetadataByPath(
               folderPath
@@ -408,17 +423,9 @@ const Manager = () => {
                 })
               )
             ).then((processedData) => {
-              console.log('detailed file data on Upload:', processedData);
               setFileData(processedData);
             });
           }
-
-          // let templistdone = currentUploadingList.current.slice();
-          // let index = templistdone.findIndex((ele) => ele.id === toastID);
-          // if (index > -1) {
-          //   templistdone[index].percent = 100;
-          //   setUploadingList(templistdone);
-          // }
         } finally {
           release();
         }
@@ -461,17 +468,6 @@ const Manager = () => {
 
   const pathGenerator = React.useCallback(
     (file) => {
-      console.log(relativePath(file.webkitRelativePath));
-      // return file.name === (file.path || file.webkitRelativePath || file.name)
-      //   ? folderPath
-      //   : folderPath === '/'
-      //   ? file.webkitRelativePath
-      //     ? folderPath + relativePath(file.webkitRelativePath)
-      //     : relativePath(file.path)
-      //   : file.webkitRelativePath
-      //   ? folderPath + '/' + relativePath(file.webkitRelativePath)
-      //   : folderPath + relativePath(file.path);
-
       return file.name === (file.path || file.webkitRelativePath || file.name)
         ? folderPath
         : folderPath === '/'
@@ -487,19 +483,14 @@ const Manager = () => {
 
   const selectFiles = React.useCallback(
     async (files) => {
-      // console.log('filePaths:', filePaths);
+      let templist = currentUploadingList.current.slice();
 
-      // const files = filePaths.map((path: string) =>
-      //   JSON.parse(fs.readFileSync(path, 'utf-8'))
-      // );
-      // let templist = currentUploadingList.current.slice();
-      // isFileManaging();
+      files.forEach((file: File) => {
+        let toastID = file.size + file.name;
+        templist.push({ id: toastID, fileName: file.name, percent: 0 });
+      });
 
-      // files.forEach((file) => {
-      //   let toastID = file.size + file.name;
-      //   templist.push({ id: toastID, fileName: file.name, percent: 0 });
-      // });
-      // setUploadingList(templist);
+      setUploadingList(templist);
 
       for (const file of files) {
         const path = pathGenerator(file);
@@ -853,6 +844,10 @@ const Manager = () => {
   return (
     // <DragAndDropzone folderPath={folderPath}>
     <Container fluid>
+      <UploadProgress
+        list={uploadingList}
+        clearList={() => setUploadingList([])}
+      />
       <ButtonToolbar
         className="justify-content-between"
         aria-label="Toolbar with Button groups"
