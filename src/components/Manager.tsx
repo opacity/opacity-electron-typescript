@@ -459,6 +459,32 @@ const Manager = () => {
     [accountSystem, updateCurrentFolderSwitch]
   );
 
+  const pathGenerator = React.useCallback(
+    (file) => {
+      console.log(relativePath(file.webkitRelativePath));
+      // return file.name === (file.path || file.webkitRelativePath || file.name)
+      //   ? folderPath
+      //   : folderPath === '/'
+      //   ? file.webkitRelativePath
+      //     ? folderPath + relativePath(file.webkitRelativePath)
+      //     : relativePath(file.path)
+      //   : file.webkitRelativePath
+      //   ? folderPath + '/' + relativePath(file.webkitRelativePath)
+      //   : folderPath + relativePath(file.path);
+
+      return file.name === (file.path || file.webkitRelativePath || file.name)
+        ? folderPath
+        : folderPath === '/'
+        ? file.webkitRelativePath
+          ? folderPath + relativePath(file.webkitRelativePath)
+          : folderPath
+        : file.webkitRelativePath
+        ? folderPath + '/' + relativePath(file.webkitRelativePath)
+        : folderPath;
+    },
+    [folderPath]
+  );
+
   const selectFiles = React.useCallback(
     async (files) => {
       // console.log('filePaths:', filePaths);
@@ -476,19 +502,9 @@ const Manager = () => {
       // setUploadingList(templist);
 
       for (const file of files) {
-        // await uploadFile(file, folderPath);
-        file.name === (file.path || file.webkitRelativePath || file.name)
-          ? await uploadFile(file, folderPath)
-          : await uploadFile(
-              file,
-              folderPath === '/'
-                ? file.webkitRelativePath
-                  ? folderPath + relativePath(file.webkitRelativePath)
-                  : relativePath(file.path)
-                : file.webkitRelativePath
-                ? folderPath + '/' + relativePath(file.webkitRelativePath)
-                : folderPath + relativePath(file.path)
-            );
+        const path = pathGenerator(file);
+        // console.log(path);
+        await uploadFile(file, path);
       }
 
       setUpdateCurrentFolderSwitch(!updateCurrentFolderSwitch);

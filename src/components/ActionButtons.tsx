@@ -30,6 +30,7 @@ const UploadForm: React.FC<UploadFormProps> = ({
     let files = Array.from(uploadFileInput.current!.files || []);
     uploadForm.current!.reset();
     if (files.length > 0) {
+      console.log(files[0]);
       files = files.filter((file) => file.size <= FILE_MAX_SIZE);
       onSelected(files);
     }
