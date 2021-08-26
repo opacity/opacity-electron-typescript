@@ -1,15 +1,10 @@
 import React, { useState } from 'react';
 import { Card, ListGroup } from 'react-bootstrap';
 import { CircularProgressbar } from 'react-circular-progressbar';
+import { ProgressItem } from '../interfaces';
+
 import 'react-circular-progressbar/dist/styles.css';
-
 import '../styles/upload_progress.scss';
-
-interface ProgressItem {
-  id: string;
-  fileName: string;
-  percent: number;
-}
 
 interface Props {
   list?: ProgressItem[] | null;

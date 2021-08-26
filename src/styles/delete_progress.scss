@@ -1,0 +1,32 @@
+.delete_progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+
+    .icon-close {
+      content: url('../../assets/icons/close.svg');
+      cursor: pointer;
+    }
+  }
+
+  .card-body {
+    background-color: #f6f7fc;
+    height: 80px;
+
+    .progress {
+      height: 5px;
+      background-color: #eddebd;
+
+      .progress-bar {
+        background-color: #f7af0c;
+      }
+    }
+  }
+}

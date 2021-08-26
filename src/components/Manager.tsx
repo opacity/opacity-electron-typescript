@@ -1,4 +1,4 @@
-import { ipcRenderer } from 'electron';
+// import { ipcRenderer } from 'electron';
 // const { dialog } = require('electron').remote;
 // const dialog = null;
 import Path from 'path';
@@ -57,10 +57,14 @@ import {
 } from '../../ts-client-library/packages/filesystem-access/src/events';
 import { isPathChild } from '../../ts-client-library/packages/util/src/path';
 import { FileSystemObject } from '../../ts-client-library/packages/filesystem-access/src/filesystem-object';
+import { Spinner } from 'react-bootstrap';
 
 import UploadProgress from './UploadProgress';
 
+import { ProgressItem } from '../interfaces';
+
 import '../styles/manager.global.css';
+import DeletingProgress from './DeletingProgress';
 
 const Checkbox = Styled.input.attrs({
   type: 'checkbox',
@@ -81,8 +85,8 @@ const Manager = () => {
     false
   );
   // For Upload Process Tracking
-  const [uploadingList, setUploadingList] = useState<Object[]>([]);
-  const currentUploadingList = React.useRef<Object[]>([]);
+  const [uploadingList, setUploadingList] = useState<ProgressItem[]>([]);
+  const currentUploadingList = React.useRef<ProgressItem[]>([]);
 
   React.useEffect(() => {
     currentUploadingList.current = uploadingList;
@@ -354,12 +358,12 @@ const Manager = () => {
           // console.log(currentPathRef.current, path);
 
           if (isPathChild(folderPath, path)) {
-            setPageLoading(true);
+            // setPageLoading(true);
             setUpdateCurrentFolderSwitch(!updateCurrentFolderSwitch);
           }
 
           if (path == folderPath) {
-            setPageLoading(true);
+            // setPageLoading(true);
             // const folderMeta = await accountSystem.getFolderMetadataByPath(
             //   folderPath
             // );
@@ -413,6 +417,7 @@ const Manager = () => {
             setUploadingList(templistdone);
           }
           if (path === folderPath) {
+            setPageLoading(true);
             const folderMeta = await accountSystem.getFolderMetadataByPath(
               folderPath
             );
@@ -424,6 +429,7 @@ const Manager = () => {
               )
             ).then((processedData) => {
               setFileData(processedData);
+              setPageLoading(false);
             });
           }
         } finally {
@@ -658,7 +664,6 @@ const Manager = () => {
   );
 
   const handleDelete = async (fileToDelete: any, folderToDelete: any) => {
-    console.log('Handle Delete', folderToDelete, fileToDelete);
     setPageLoading(true);
     // setShowDeleteModal(false);
     const selectedFiles = fileData.filter((file) => file.checked);
@@ -670,24 +675,26 @@ const Manager = () => {
         setCount(0);
         await deleteFolder(folderToDelete);
         setUpdateCurrentFolderSwitch(!updateCurrentFolderSwitch);
-        // setFolderToDelete(null);
-        // OnfinishFileManaging();
-
-        setCount(0);
-        setTotalItemsToDelete(0);
       } else {
+        setTotalItemsToDelete(1);
+        setCount(0);
         await deleteFile(fileToDelete);
+        setCount(1);
         // OnfinishFileManaging();
         setUpdateCurrentFolderSwitch(!updateCurrentFolderSwitch);
       }
     } else {
+      setTotalItemsToDelete(selectedFiles.length);
+      setCount(0);
       for (const file of selectedFiles) {
         await deleteFile(file);
+        setCount((count) => count + 1);
       }
       // OnfinishFileManaging();
       setUpdateCurrentFolderSwitch(!updateCurrentFolderSwitch);
       // setSelectedFiles([]);
     }
+    changeAllCheckboxState(false);
   };
 
   function changeAllCheckboxState(checked: boolean) {
@@ -727,6 +734,7 @@ const Manager = () => {
   }
 
   function updatePath(newPath: string) {
+    console.log(folderPath, newPath);
     const updatedPath = Path.join(folderPath, newPath);
     setFolderPath(updatedPath);
     // ipcRenderer.send('path:update', updatedPath);
@@ -738,6 +746,7 @@ const Manager = () => {
     setFolders(newPath);
     let traversedPath = [...newPath];
     traversedPath[0] = '/';
+    console.log(traversedPath);
     setFolderPath(Path.join(...traversedPath));
   }
 
@@ -844,9 +853,22 @@ const Manager = () => {
   return (
     // <DragAndDropzone folderPath={folderPath}>
     <Container fluid>
+      {/* {pageLoading && (
+        <div className="page-cover d-flex align-items-center justify-content-center">
+          <Spinner animation="border" />
+        </div>
+      )} */}
       <UploadProgress
         list={uploadingList}
         clearList={() => setUploadingList([])}
+      />
+      <DeletingProgress
+        total={totalItemsToDelete}
+        done={count}
+        onClose={() => {
+          setTotalItemsToDelete(0);
+          setCount(0);
+        }}
       />
       <ButtonToolbar
         className="justify-content-between"
@@ -854,13 +876,11 @@ const Manager = () => {
       >
         <ButtonGroup>
           {folders.map((folder, index) => {
-            //if (folders.length - 1 != index) {
             return (
               <Card key={index}>
                 <Button onClick={() => goBackTo(index)}>{folder}</Button>
               </Card>
             );
-            //}
           })}
         </ButtonGroup>
         <ActionButtons
