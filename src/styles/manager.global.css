@@ -8,3 +8,9 @@
   opacity: 0.8;
   z-index: 2000;
 }
+
+td,
+th {
+  display: table-cell;
+  vertical-align: middle;
+}

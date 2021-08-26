@@ -43,9 +43,9 @@ const FileTableItem = ({
         />
       </td>
       <td>
-        <AiOutlineFile />
+        <AiOutlineFile fontSize="24px" />
+        <span className="ms-2 mt-1">{file.name.slice(0, 64)}</span>
       </td>
-      <td>{file.name.slice(0, 64)}</td>
       <td>
         <Moment format="MMM Do YYYY">{new Date(file.uploaded)}</Moment>
       </td>

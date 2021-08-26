@@ -612,32 +612,6 @@ const Manager = () => {
     return 0;
   };
 
-  // async function deleteFunc(handle: string | Uint8Array, name: string | null) {
-  //   const { value: result } = await Swal.fire({
-  //     title: 'Are you sure?',
-  //     html: `You won't be able to revert this!<br/>Deleting: ${name}`,
-  //     icon: 'warning',
-  //     showCancelButton: true,
-  //     confirmButtonColor: '#3085d6',
-  //     cancelButtonColor: '#d33',
-  //     confirmButtonText: 'Yes, delete it!',
-  //   });
-
-  //   if (result) {
-  //     handleDelete();
-  //     // ipcRenderer.send('files:delete', {
-  //     //   folder: folderPath,
-  //     //   files: [
-  //     //     {
-  //     //       handle: handle,
-  //     //       name: name,
-  //     //     },
-  //     //   ],
-  //     // });
-  //     changeAllCheckboxState(false);
-  //   }
-  // }
-
   const handleDeleteItem = React.useCallback(
     async (item: FolderFileEntry | FoldersIndexEntry, isFile: boolean) => {
       console.log('isFile', isFile, item);
@@ -665,23 +639,24 @@ const Manager = () => {
 
   const handleDelete = async (fileToDelete: any, folderToDelete: any) => {
     setPageLoading(true);
-    // setShowDeleteModal(false);
     const selectedFiles = fileData.filter((file) => file.checked);
 
     if (selectedFiles.length === 0) {
       if (folderToDelete) {
-        // isFileManaging();
         setTotalItemsToDelete(await calculateTotalItems(folderToDelete));
         setCount(0);
         await deleteFolder(folderToDelete);
-        setUpdateCurrentFolderSwitch(!updateCurrentFolderSwitch);
+        setUpdateCurrentFolderSwitch(
+          (updateCurrentFolderSwitch) => !updateCurrentFolderSwitch
+        );
       } else {
         setTotalItemsToDelete(1);
         setCount(0);
         await deleteFile(fileToDelete);
         setCount(1);
-        // OnfinishFileManaging();
-        setUpdateCurrentFolderSwitch(!updateCurrentFolderSwitch);
+        setUpdateCurrentFolderSwitch(
+          (updateCurrentFolderSwitch) => !updateCurrentFolderSwitch
+        );
       }
     } else {
       setTotalItemsToDelete(selectedFiles.length);
@@ -690,9 +665,7 @@ const Manager = () => {
         await deleteFile(file);
         setCount((count) => count + 1);
       }
-      // OnfinishFileManaging();
       setUpdateCurrentFolderSwitch(!updateCurrentFolderSwitch);
-      // setSelectedFiles([]);
     }
     changeAllCheckboxState(false);
   };
@@ -894,7 +867,7 @@ const Manager = () => {
           changeAllCheckboxState={changeAllCheckboxState}
         ></ActionButtons>
       </ButtonToolbar>
-      <Table size="sm">
+      <Table size="sm" className="mt-2">
         <thead>
           <tr>
             <th>
@@ -903,7 +876,7 @@ const Manager = () => {
                 onChange={(t) => changeAllCheckboxState(t.target.checked)}
               />
             </th>
-            <th></th>
+            {/* <th></th> */}
             <th>
               <Button variant="outline-secondary" onClick={sortName}>
                 Name

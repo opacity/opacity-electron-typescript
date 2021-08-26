@@ -3,6 +3,7 @@ import React, { useState, useRef, ReactNode } from 'react';
 import Button from 'react-bootstrap/Button';
 import ButtonGroup from 'react-bootstrap/ButtonGroup';
 import Card from 'react-bootstrap/Card';
+import { useHistory } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import { FILE_MAX_SIZE } from '../config';
 
@@ -63,7 +64,7 @@ const ActionButtons = ({
   deleteFunc = (_?: any) => {},
   changeAllCheckboxState,
 }) => {
-  const { dialog } = require('electron').remote;
+  const history = useHistory();
   const defaultCutButton = {
     cut: true,
     files: [],
@@ -75,11 +76,6 @@ const ActionButtons = ({
   const uploadFileInput = useRef(null);
   const uploadFolderInput = useRef(null);
   const [isDirectory, setIsDirectory] = useState(false);
-  const directory = {
-    directory: '',
-    webkitDirectory: '',
-    mozkitdirectory: '',
-  };
 
   async function cutAndPaste(paste = true) {
     if (cutButton.cut) {
@@ -171,24 +167,15 @@ const ActionButtons = ({
     const currentRef = isFolder ? uploadFolderInput : uploadFileInput;
     setIsDirectory(isFolder);
     currentRef.current!.click();
-
-    // selectFiles();
-    // const files = dialog.showOpenDialog({
-    //   properties: [isFolder ? 'openDirectory' : 'openFile', 'multiSelections'],
-    // });
-    // .then((result) => {
-    //   if (!result.canceled) {
-    //     uploadFunc(result.filePaths);
-    //     // ipcRenderer.send('files:upload', {
-    //     //   folder: folderPath,
-    //     //   files: result.filePaths,
-    //     // });
-    //   }
-    // })
-    // .catch((err) => {
-    //   console.log(err);
-    // });
   }
+
+  const handleLogout = () => {
+    window.localStorage.removeItem('handle');
+
+    window.localStorage.removeItem('autoLogin');
+
+    history.push('/');
+  };
 
   const selectFiles = () => {
     const currentRef = isDirectory ? uploadFolderInput : uploadFileInput;
@@ -249,6 +236,9 @@ const ActionButtons = ({
         >
           <Button>Upload Files</Button>
         </UploadForm>
+      </Card>
+      <Card className="ms-2">
+        <Button onClick={() => handleLogout()}>Log Out</Button>
       </Card>
     </ButtonGroup>
   );

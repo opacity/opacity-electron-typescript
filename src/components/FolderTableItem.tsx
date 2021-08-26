@@ -40,10 +40,13 @@ const FolderTableItem: React.FC<FolderTableItemProps> = ({
         /> */}
       </td>
       <td>
-        <AiFillFolder />
-      </td>
-      <td>
-        <Button variant="outline-info" onClick={() => updatePath(folder.name)}>
+        <AiFillFolder fontSize="24px" />
+
+        <Button
+          variant="outline-info"
+          onClick={() => updatePath(folder.name)}
+          className="ms-2"
+        >
           {folder.name.slice(0, 64)}
         </Button>
       </td>
