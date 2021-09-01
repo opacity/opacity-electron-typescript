@@ -46,6 +46,10 @@
       content: url('../../assets/icons/close.svg');
       cursor: pointer;
       margin-left: 20px;
+
+      &.disabled {
+        opacity: 0.5;
+      }
     }
   }
   .percent {

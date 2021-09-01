@@ -11,24 +11,10 @@
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 import path from 'path';
-import { app, BrowserWindow, shell, ipcMain } from 'electron';
+import { app, BrowserWindow, shell } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
-
-// import { Account } from '../ts-client-library/packages/account-management';
-// import {
-//   WebAccountMiddleware,
-//   WebNetworkMiddleware,
-// } from '../ts-client-library/packages/middleware-web';
-// import { hexToBytes } from '../ts-client-library/packages/util/src/hex';
-// import { STORAGE_NODE as storageNode } from './config';
-// import { FileSystemObject } from '../ts-client-library/packages/filesystem-access/src/filesystem-object';
-// import {
-//   AccountSystem,
-//   MetadataAccess,
-// } from '../ts-client-library/packages/account-system/src';
-
 export default class AppUpdater {
   constructor() {
     log.transports.file.level = 'info';
@@ -51,27 +37,7 @@ if (
   require('electron-debug')();
 }
 
-const installExtensions = async () => {
-  const installer = require('electron-devtools-installer');
-  const forceDownload = !!process.env.UPGRADE_EXTENSIONS;
-  const extensions = ['REACT_DEVELOPER_TOOLS'];
-
-  return installer
-    .default(
-      extensions.map((name) => installer[name]),
-      forceDownload
-    )
-    .catch(console.log);
-};
-
 const createWindow = async () => {
-  // if (
-  //   process.env.NODE_ENV === 'development' ||
-  //   process.env.DEBUG_PROD === 'true'
-  // ) {
-  //   await installExtensions();
-  // }
-
   const RESOURCES_PATH = app.isPackaged
     ? path.join(process.resourcesPath, 'assets')
     : path.join(__dirname, '../assets');
@@ -94,8 +60,6 @@ const createWindow = async () => {
 
   mainWindow.loadURL(`file://${__dirname}/index.html`);
 
-  // @TODO: Use 'ready-to-show' event
-  //        https://github.com/electron/electron/blob/master/docs/api/browser-window.md#using-ready-to-show-event
   mainWindow.webContents.on('did-finish-load', () => {
     if (!mainWindow) {
       throw new Error('"mainWindow" is not defined');
@@ -106,8 +70,6 @@ const createWindow = async () => {
       mainWindow.show();
       mainWindow.focus();
     }
-
-    mainWindow.webContents.openDevTools();
   });
 
   mainWindow.on('closed', () => {
@@ -122,10 +84,6 @@ const createWindow = async () => {
     event.preventDefault();
     shell.openExternal(url);
   });
-
-  // Remove this if your app does not use auto updates
-  // eslint-disable-next-line
-  new AppUpdater();
 };
 
 /**

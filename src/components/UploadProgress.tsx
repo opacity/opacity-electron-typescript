@@ -30,7 +30,10 @@ const UploadProgress: React.FC<Props> = ({ list, clearList = () => {} }) => {
             onClick={() => setMinimize(!minimize)}
           ></span>
 
-          <span className="icon-close" onClick={() => clearList()}></span>
+          <span
+            className={`icon-close ${list.length !== completed && 'disabled'}`}
+            onClick={() => list.length === completed && clearList()}
+          ></span>
         </div>
       </Card.Header>
 
