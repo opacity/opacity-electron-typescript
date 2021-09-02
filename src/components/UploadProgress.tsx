@@ -14,6 +14,15 @@ interface Props {
 const UploadProgress: React.FC<Props> = ({ list, clearList = () => {} }) => {
   const [minimize, setMinimize] = useState(false);
 
+  list = [
+    ...list,
+    {
+      id: 'test',
+      fileName:
+        'reallylongggggggggggggggggglongggggggggggggggggglongggggggggggggggggglongggggggggggggggggglonggggggggggggggggggfilename.jpg',
+      percent: 0,
+    },
+  ];
   if (!list || !list.length) return null;
 
   const completed = list.filter((item) => item.percent === 100)?.length;
@@ -41,7 +50,8 @@ const UploadProgress: React.FC<Props> = ({ list, clearList = () => {} }) => {
         <ListGroup variant="flush">
           {list?.map(({ id, fileName, percent }) => (
             <ListGroup.Item key={id}>
-              {fileName}
+              <div className="text-ellipsis">{fileName}</div>
+
               <div className="percent">
                 <CircularProgressbar value={percent} strokeWidth={20} />
               </div>

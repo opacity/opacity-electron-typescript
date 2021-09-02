@@ -5,7 +5,6 @@ import ButtonGroup from 'react-bootstrap/ButtonGroup';
 import Card from 'react-bootstrap/Card';
 import { useHistory } from 'react-router-dom';
 import Swal from 'sweetalert2';
-import { FILE_MAX_SIZE } from '../config';
 
 type UploadFormProps = {
   children: ReactNode | ReactNode[] | null;
@@ -31,8 +30,7 @@ const UploadForm: React.FC<UploadFormProps> = ({
     let files = Array.from(uploadFileInput.current!.files || []);
     uploadForm.current!.reset();
     if (files.length > 0) {
-      console.log(files[0]);
-      files = files.filter((file) => file.size <= FILE_MAX_SIZE);
+      // files = files.filter((file) => file.size <= FILE_MAX_SIZE);
       onSelected(files);
     }
   };
@@ -183,7 +181,7 @@ const ActionButtons = ({
     // uploadFileInput.current!.reset();
     currentRef.current!.value = '';
     if (files.length > 0) {
-      files = files.filter((file) => file.size <= FILE_MAX_SIZE);
+      // files = files.filter((file) => file.size <= FILE_MAX_SIZE);
       // files.length !== filesLength && setShowWarningModal(true);
       uploadFunc(files);
     }
