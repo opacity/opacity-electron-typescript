@@ -14,15 +14,6 @@ interface Props {
 const UploadProgress: React.FC<Props> = ({ list, clearList = () => {} }) => {
   const [minimize, setMinimize] = useState(false);
 
-  list = [
-    ...list,
-    {
-      id: 'test',
-      fileName:
-        'reallylongggggggggggggggggglongggggggggggggggggglongggggggggggggggggglongggggggggggggggggglonggggggggggggggggggfilename.jpg',
-      percent: 0,
-    },
-  ];
   if (!list || !list.length) return null;
 
   const completed = list.filter((item) => item.percent === 100)?.length;
