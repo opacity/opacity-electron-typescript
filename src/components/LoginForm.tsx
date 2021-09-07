@@ -34,7 +34,7 @@ const LoginForm = () => {
   const login = (handle: string) => {
     try {
       if (handle.length !== 128) {
-        throw Error("Then handle doesn't have the right length of 128 signs.");
+        throw Error('Account handle must be 128 characters long.');
       }
 
       const cryptoMiddleware = new WebAccountMiddleware({
@@ -49,7 +49,6 @@ const LoginForm = () => {
       account
         .info()
         .then((acc) => {
-          console.log('ACC:', acc.paymentStatus);
           if (acc.account.apiVersion !== 2) {
             console.log('This handle is old. Please Upgrade it.');
             return;
@@ -87,15 +86,14 @@ const LoginForm = () => {
     e.preventDefault();
 
     login(handle);
-    // ipcRenderer.send('handle:set', { handle: handle, saveHandle: save });
   };
 
   return (
     <Container className="login-container">
       <div className="login-bg"></div>
+
       <Card border="primary" className="shadow-lg">
         <Card.Body>
-          {/* <Card.Title className="text-center mb-5">Sign In</Card.Title> */}
           <div className="logo">
             <img src={logo} className="logo" />
           </div>
@@ -110,6 +108,7 @@ const LoginForm = () => {
                 className="mb-2"
                 autoFocus
               />
+
               <Form.Check
                 type="checkbox"
                 label="Auto Login"
@@ -118,18 +117,17 @@ const LoginForm = () => {
                 className="mb-2"
               />
             </Form.Group>
+
             {(() => {
               return (
                 errorMessage && (
                   <div style={{ textAlign: 'center', color: 'red' }}>
-                    <p style={{ fontWeight: 'bold', opacity: 0.8 }}>
-                      Make sure you enter your handle correctly!
-                    </p>
                     <p>{errorMessage}</p>
                   </div>
                 )
               );
             })()}
+
             <div className="submit">
               <Button variant="primary" type="submit" size="lg">
                 Sign In
