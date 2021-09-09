@@ -18,7 +18,6 @@ import Styled from 'styled-components';
 // import * as Utils from './../../opacity/Utils';
 import FileTableItem from './FileTableItem';
 import FolderTableItem from './FolderTableItem';
-// import DragAndDropzone from './DragAndDropzone';
 import ActionButtons from './ActionButtons';
 import {
   WebAccountMiddleware,
@@ -57,13 +56,13 @@ import {
 } from '../../ts-client-library/packages/filesystem-access/src/events';
 import { isPathChild } from '../../ts-client-library/packages/util/src/path';
 import { FileSystemObject } from '../../ts-client-library/packages/filesystem-access/src/filesystem-object';
-import { Spinner } from 'react-bootstrap';
+import { useDropzone } from 'react-dropzone';
 
 import UploadProgress from './UploadProgress';
 
 import { ProgressItem } from '../interfaces';
 
-import '../styles/manager.global.css';
+import '../styles/manager.scss';
 import DeletingProgress from './DeletingProgress';
 
 const Checkbox = Styled.input.attrs({
@@ -87,6 +86,19 @@ const Manager = () => {
   // For Upload Process Tracking
   const [uploadingList, setUploadingList] = useState<ProgressItem[]>([]);
   const currentUploadingList = React.useRef<ProgressItem[]>([]);
+
+  const onDrop = React.useCallback(
+    (files) => {
+      selectFiles(files);
+    },
+    [folderPath]
+  );
+
+  const { isDragActive, getRootProps } = useDropzone({
+    onDrop,
+    minSize: 0,
+    multiple: true,
+  });
 
   React.useEffect(() => {
     currentUploadingList.current = uploadingList;
@@ -762,15 +774,16 @@ const Manager = () => {
   }
 
   async function sortName() {
-    const copyMetadata = JSON.parse(JSON.stringify(metadata));
+    const newFolderData = [...folderData];
+    const newFileData = [...fileData];
 
-    copyMetadata.folders.sort(function (folderA, folderB) {
+    newFolderData.sort(function (folderA, folderB) {
       return sorts.name.ascending
         ? ('' + folderA.name).localeCompare(folderB.name)
         : ('' + folderB.name).localeCompare(folderA.name);
     });
 
-    copyMetadata.files.sort(function (fileA, fileB) {
+    newFileData.sort(function (fileA, fileB) {
       return sorts.name.ascending
         ? ('' + fileA.name).localeCompare(fileB.name)
         : ('' + fileB.name).localeCompare(fileA.name);
@@ -782,16 +795,17 @@ const Manager = () => {
     sorts.size = defaultSorts.size;
     sorts.createdDate = defaultSorts.createdDate;
     setSorts(sorts);
-    setMetadata(copyMetadata);
+    setFolderData(newFolderData);
+    setFileData(newFileData);
   }
 
   async function sortSize() {
-    const copyMetadata = JSON.parse(JSON.stringify(metadata));
+    const newFileData = [...fileData];
 
-    copyMetadata.files.sort(function (fileA: any, fileB: any) {
+    newFileData.sort(function (fileA: any, fileB: any) {
       return sorts.size.ascending
-        ? fileA.versions[0].size - fileB.versions[0].size
-        : fileB.versions[0].size - fileA.versions[0].size;
+        ? fileA.size - fileB.size
+        : fileB.size - fileA.size;
     });
 
     sorts.size.ascending = !sorts.size.ascending;
@@ -800,16 +814,23 @@ const Manager = () => {
     sorts.name = defaultSorts.name;
     sorts.createdDate = defaultSorts.createdDate;
     setSorts(sorts);
-    setMetadata(copyMetadata);
+    setFileData(newFileData);
   }
 
   async function sortCreated() {
-    const copyMetadata = JSON.parse(JSON.stringify(metadata));
+    const newFileData = [...fileData];
+    const newFolderData = [...folderData];
 
-    copyMetadata.files.sort(function (fileA, fileB) {
+    newFileData.sort(function (fileA, fileB) {
       return sorts.createdDate.ascending
-        ? fileA.created - fileB.created
-        : fileB.created - fileA.created;
+        ? fileA.uploaded - fileB.uploaded
+        : fileB.uploaded - fileA.uploaded;
+    });
+
+    newFolderData.sort(function (folderA, folderB) {
+      return sorts.createdDate.ascending
+        ? folderA.uploaded - folderB.uploaded
+        : folderB.uploaded - folderA.uploaded;
     });
 
     sorts.createdDate.ascending = !sorts.createdDate.ascending;
@@ -820,129 +841,140 @@ const Manager = () => {
     sorts.name = defaultSorts.name;
     sorts.size = defaultSorts.size;
     setSorts(sorts);
-    setMetadata(copyMetadata);
+    setFolderData(newFolderData);
+    setFileData(newFileData);
   }
 
   return (
-    // <DragAndDropzone folderPath={folderPath}>
-    <Container fluid>
-      {/* {pageLoading && (
+    <div {...getRootProps()}>
+      {isDragActive && (
+        <div className="dnd-overlay">
+          <div className="content-wrapper">
+            <div className="overlay-content">
+              <span>Drag your file to upload to Opacity</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Container fluid>
+        {/* {pageLoading && (
         <div className="page-cover d-flex align-items-center justify-content-center">
           <Spinner animation="border" />
         </div>
       )} */}
-      <UploadProgress
-        list={uploadingList}
-        clearList={() => setUploadingList([])}
-      />
-      <DeletingProgress
-        total={totalItemsToDelete}
-        done={count}
-        onClose={() => {
-          setTotalItemsToDelete(0);
-          setCount(0);
-        }}
-      />
-      <ButtonToolbar
-        className="justify-content-between"
-        aria-label="Toolbar with Button groups"
-      >
-        <ButtonGroup>
-          {folders.map((folder, index) => {
+        <UploadProgress
+          list={uploadingList}
+          clearList={() => setUploadingList([])}
+        />
+        <DeletingProgress
+          total={totalItemsToDelete}
+          done={count}
+          onClose={() => {
+            setTotalItemsToDelete(0);
+            setCount(0);
+          }}
+        />
+        <ButtonToolbar
+          className="justify-content-between"
+          aria-label="Toolbar with Button groups"
+        >
+          <ButtonGroup>
+            {folders.map((folder, index) => {
+              return (
+                <Card key={index}>
+                  <Button onClick={() => goBackTo(index)}>{folder}</Button>
+                </Card>
+              );
+            })}
+          </ButtonGroup>
+          <ActionButtons
+            metadata={metadata}
+            folderPath={folderPath}
+            massButtons={massButtons}
+            downloadFunc={handleMultiDownload}
+            uploadFunc={selectFiles}
+            addFolder={addNewFolder}
+            deleteFunc={() => handleDelete(null, null)}
+            changeAllCheckboxState={changeAllCheckboxState}
+          ></ActionButtons>
+        </ButtonToolbar>
+        <Table size="sm" className="mt-2">
+          <thead>
+            <tr>
+              <th>
+                <Checkbox
+                  checked={selectAllCheckbox}
+                  onChange={(t) => changeAllCheckboxState(t.target.checked)}
+                />
+              </th>
+              {/* <th></th> */}
+              <th>
+                <Button variant="outline-secondary" onClick={sortName}>
+                  Name
+                  {sorts.name.show ? ' ' + sorts.name.icon : ''}
+                </Button>
+              </th>
+              <th>
+                <Button variant="outline-secondary" onClick={sortCreated}>
+                  Created
+                  {sorts.createdDate.show ? ' ' + sorts.createdDate.icon : ''}
+                </Button>
+              </th>
+              <th>
+                <Button variant="outline-secondary" onClick={sortSize}>
+                  Size
+                  {sorts.size.show ? ' ' + sorts.size.icon : ''}
+                </Button>
+              </th>
+              <th style={{ fontWeight: 500 }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {folderData &&
+              folderData.map((folder, index) => {
+                return (
+                  <FolderTableItem
+                    key={index}
+                    folder={folder}
+                    updatePath={updatePath}
+                    downloadFunc={downloadFunc}
+                    deleteFunc={handleDeleteItem}
+                    renameFunc={renameFunc}
+                  />
+                );
+              })}
+            {fileData &&
+              fileData.map((file, index) => {
+                return (
+                  <FileTableItem
+                    key={index}
+                    file={file}
+                    deleteFunc={handleDeleteItem}
+                    downloadFunc={downloadFunc}
+                    renameFunc={renameFunc}
+                    changeCheckboxState={changeFileCheckboxState}
+                  />
+                );
+              })}
+          </tbody>
+        </Table>
+        {(() => {
+          if (fileData.length === 0 && folderData.length === 0)
             return (
-              <Card key={index}>
-                <Button onClick={() => goBackTo(index)}>{folder}</Button>
-              </Card>
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ fontWeight: 'bold', opacity: 0.8 }}>
+                  There are no items in this folder
+                </p>
+                <p>
+                  Drag files and folders here to upload, or click the upload
+                  button on the top right to browse files from your computer.
+                </p>
+              </div>
             );
-          })}
-        </ButtonGroup>
-        <ActionButtons
-          metadata={metadata}
-          folderPath={folderPath}
-          massButtons={massButtons}
-          downloadFunc={handleMultiDownload}
-          uploadFunc={selectFiles}
-          addFolder={addNewFolder}
-          deleteFunc={() => handleDelete(null, null)}
-          changeAllCheckboxState={changeAllCheckboxState}
-        ></ActionButtons>
-      </ButtonToolbar>
-      <Table size="sm" className="mt-2">
-        <thead>
-          <tr>
-            <th>
-              <Checkbox
-                checked={selectAllCheckbox}
-                onChange={(t) => changeAllCheckboxState(t.target.checked)}
-              />
-            </th>
-            {/* <th></th> */}
-            <th>
-              <Button variant="outline-secondary" onClick={sortName}>
-                Name
-                {sorts.name.show ? ' ' + sorts.name.icon : ''}
-              </Button>
-            </th>
-            <th>
-              <Button variant="outline-secondary" onClick={sortCreated}>
-                Created
-                {sorts.createdDate.show ? ' ' + sorts.createdDate.icon : ''}
-              </Button>
-            </th>
-            <th>
-              <Button variant="outline-secondary" onClick={sortSize}>
-                Size
-                {sorts.size.show ? ' ' + sorts.size.icon : ''}
-              </Button>
-            </th>
-            <th style={{ fontWeight: 500 }}>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {folderData &&
-            folderData.map((folder, index) => {
-              return (
-                <FolderTableItem
-                  key={index}
-                  folder={folder}
-                  updatePath={updatePath}
-                  downloadFunc={downloadFunc}
-                  deleteFunc={handleDeleteItem}
-                  renameFunc={renameFunc}
-                />
-              );
-            })}
-          {fileData &&
-            fileData.map((file, index) => {
-              return (
-                <FileTableItem
-                  key={index}
-                  file={file}
-                  deleteFunc={handleDeleteItem}
-                  downloadFunc={downloadFunc}
-                  renameFunc={renameFunc}
-                  changeCheckboxState={changeFileCheckboxState}
-                />
-              );
-            })}
-        </tbody>
-      </Table>
-      {(() => {
-        if (fileData.length === 0 && folderData.length === 0)
-          return (
-            <div style={{ textAlign: 'center' }}>
-              <p style={{ fontWeight: 'bold', opacity: 0.8 }}>
-                There are no items in this folder
-              </p>
-              <p>
-                Drag files and folders here to upload, or click the upload
-                button on the top right to browse files from your computer.
-              </p>
-            </div>
-          );
-      })()}
-    </Container>
-    // </DragAndDropzone>
+        })()}
+      </Container>
+    </div>
   );
 };
 

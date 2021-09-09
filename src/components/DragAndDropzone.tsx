@@ -1,9 +1,8 @@
-import { ipcRenderer } from 'electron';
-import React, { ReactNodeArray } from 'react';
+import React, { ReactNodeArray, ReactNode } from 'react';
 
 type DragAndDropzoneProps = {
-  children: ReactNodeArray;
-  folderPath: any;
+  children: ReactNodeArray | ReactNode;
+  handleUpload: Function;
 };
 /*
   Handles all the dropped files/folders into the application.
@@ -11,7 +10,7 @@ type DragAndDropzoneProps = {
 */
 const DragAndDropzone: React.FC<DragAndDropzoneProps> = ({
   children,
-  folderPath,
+  handleUpload = () => {},
 }) => {
   // From here
   const handleDrag = (e: DragEvent) => {
@@ -32,14 +31,8 @@ const DragAndDropzone: React.FC<DragAndDropzoneProps> = ({
   const handleDrop = (e: DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const files = [];
 
-    e?.dataTransfer?.files.forEach((file) => files.push(file.path));
-
-    ipcRenderer.send('files:upload', {
-      folder: folderPath,
-      files: files,
-    });
+    handleUpload(e?.dataTransfer?.files);
   };
 
   return (
