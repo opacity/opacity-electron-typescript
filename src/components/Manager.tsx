@@ -846,16 +846,18 @@ const Manager = () => {
   }
 
   return (
-    <div {...getRootProps()}>
-      {isDragActive && (
-        <div className="dnd-overlay">
-          <div className="content-wrapper">
-            <div className="overlay-content">
-              <span>Drag your file to upload to Opacity</span>
+    <div>
+      <div className="screen-wrapper" {...getRootProps()}>
+        {isDragActive && (
+          <div className="dnd-overlay">
+            <div className="content-wrapper">
+              <div className="overlay-content">
+                <span>Drag your file to upload to Opacity</span>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       <Container fluid>
         {/* {pageLoading && (

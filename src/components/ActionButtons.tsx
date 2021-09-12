@@ -194,23 +194,6 @@ const ActionButtons = ({
           Download
         </Button>
       </Card>
-      {/* <Card>
-        {cutButton.cut ? (
-          <Button disabled={!massButtons} onClick={() => cutAndPaste()}>
-            Move
-          </Button>
-        ) : (
-          <ButtonGroup>
-            <Button
-              disabled={cutButton.folder === folderPath}
-              onClick={() => cutAndPaste()}
-            >
-              Paste
-            </Button>
-            <Button onClick={() => cutAndPaste(false)}>Cancel</Button>
-          </ButtonGroup>
-        )}
-      </Card> */}
       <Card className="mr-1">
         <Button disabled={!massButtons} onClick={() => deleteSelected()}>
           Delete
