@@ -32,10 +32,14 @@ th {
   bottom: 0;
   left: 0;
   right: 0;
-  padding-left: 304px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
   .content-wrapper {
     padding: 100px;
     height: 100%;
+
     .overlay-content {
       background: rgba(255, 255, 255, 0.15);
       border: 2px dashed #ffffff;
@@ -44,14 +48,18 @@ th {
       align-items: center;
       flex-direction: column;
       justify-content: center;
+      padding-left: 50px;
+      padding-right: 50px;
+
       img {
         width: 60px;
         margin-bottom: 25px;
       }
+
       span {
         font-weight: 600;
         font-size: 30px;
-        line-height: 50%;
+        line-height: 50px;
         color: #ffffff;
       }
     }
