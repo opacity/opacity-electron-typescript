@@ -846,136 +846,133 @@ const Manager = () => {
   }
 
   return (
-    <div>
-      <div className="screen-wrapper" {...getRootProps()}>
-        {isDragActive && (
-          <div className="dnd-overlay">
-            <div className="content-wrapper">
-              <div className="overlay-content">
-                <span>Drag your file to upload to Opacity</span>
+    <div className="screen-wrapper" {...getRootProps()}>
+      <div>
+        <div>
+          {isDragActive && (
+            <div className="dnd-overlay">
+              <div className="content-wrapper">
+                <div className="overlay-content">
+                  <span>Drag your file to upload to Opacity</span>
+                </div>
               </div>
             </div>
-          </div>
-        )}
-      </div>
-
-      <Container fluid>
-        {/* {pageLoading && (
-        <div className="page-cover d-flex align-items-center justify-content-center">
-          <Spinner animation="border" />
+          )}
         </div>
-      )} */}
-        <UploadProgress
-          list={uploadingList}
-          clearList={() => setUploadingList([])}
-        />
-        <DeletingProgress
-          total={totalItemsToDelete}
-          done={count}
-          onClose={() => {
-            setTotalItemsToDelete(0);
-            setCount(0);
-          }}
-        />
-        <ButtonToolbar
-          className="justify-content-between"
-          aria-label="Toolbar with Button groups"
-        >
-          <ButtonGroup>
-            {folders.map((folder, index) => {
+
+        <Container fluid>
+          <UploadProgress
+            list={uploadingList}
+            clearList={() => setUploadingList([])}
+          />
+          <DeletingProgress
+            total={totalItemsToDelete}
+            done={count}
+            onClose={() => {
+              setTotalItemsToDelete(0);
+              setCount(0);
+            }}
+          />
+          <ButtonToolbar
+            className="justify-content-between"
+            aria-label="Toolbar with Button groups"
+          >
+            <ButtonGroup>
+              {folders.map((folder, index) => {
+                return (
+                  <Card key={index}>
+                    <Button onClick={() => goBackTo(index)}>{folder}</Button>
+                  </Card>
+                );
+              })}
+            </ButtonGroup>
+            <ActionButtons
+              metadata={metadata}
+              folderPath={folderPath}
+              massButtons={massButtons}
+              downloadFunc={handleMultiDownload}
+              uploadFunc={selectFiles}
+              addFolder={addNewFolder}
+              deleteFunc={() => handleDelete(null, null)}
+              changeAllCheckboxState={changeAllCheckboxState}
+            ></ActionButtons>
+          </ButtonToolbar>
+          <Table size="sm" className="mt-2">
+            <thead>
+              <tr>
+                <th>
+                  <Checkbox
+                    checked={selectAllCheckbox}
+                    onChange={(t) => changeAllCheckboxState(t.target.checked)}
+                  />
+                </th>
+                {/* <th></th> */}
+                <th>
+                  <Button variant="outline-secondary" onClick={sortName}>
+                    Name
+                    {sorts.name.show ? ' ' + sorts.name.icon : ''}
+                  </Button>
+                </th>
+                <th>
+                  <Button variant="outline-secondary" onClick={sortCreated}>
+                    Created
+                    {sorts.createdDate.show ? ' ' + sorts.createdDate.icon : ''}
+                  </Button>
+                </th>
+                <th>
+                  <Button variant="outline-secondary" onClick={sortSize}>
+                    Size
+                    {sorts.size.show ? ' ' + sorts.size.icon : ''}
+                  </Button>
+                </th>
+                <th style={{ fontWeight: 500 }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {folderData &&
+                folderData.map((folder, index) => {
+                  return (
+                    <FolderTableItem
+                      key={index}
+                      folder={folder}
+                      updatePath={updatePath}
+                      downloadFunc={downloadFunc}
+                      deleteFunc={handleDeleteItem}
+                      renameFunc={renameFunc}
+                    />
+                  );
+                })}
+              {fileData &&
+                fileData.map((file, index) => {
+                  return (
+                    <FileTableItem
+                      key={index}
+                      file={file}
+                      deleteFunc={handleDeleteItem}
+                      downloadFunc={downloadFunc}
+                      renameFunc={renameFunc}
+                      changeCheckboxState={changeFileCheckboxState}
+                    />
+                  );
+                })}
+            </tbody>
+          </Table>
+          {(() => {
+            if (fileData.length === 0 && folderData.length === 0)
               return (
-                <Card key={index}>
-                  <Button onClick={() => goBackTo(index)}>{folder}</Button>
-                </Card>
+                <div style={{ textAlign: 'center' }}>
+                  <p style={{ fontWeight: 'bold', opacity: 0.8 }}>
+                    There are no items in this folder
+                  </p>
+                  <p>
+                    Drag files and folders here to upload, or click the upload
+                    button on the top right to browse files from your computer.
+                  </p>
+                </div>
               );
-            })}
-          </ButtonGroup>
-          <ActionButtons
-            metadata={metadata}
-            folderPath={folderPath}
-            massButtons={massButtons}
-            downloadFunc={handleMultiDownload}
-            uploadFunc={selectFiles}
-            addFolder={addNewFolder}
-            deleteFunc={() => handleDelete(null, null)}
-            changeAllCheckboxState={changeAllCheckboxState}
-          ></ActionButtons>
-        </ButtonToolbar>
-        <Table size="sm" className="mt-2">
-          <thead>
-            <tr>
-              <th>
-                <Checkbox
-                  checked={selectAllCheckbox}
-                  onChange={(t) => changeAllCheckboxState(t.target.checked)}
-                />
-              </th>
-              {/* <th></th> */}
-              <th>
-                <Button variant="outline-secondary" onClick={sortName}>
-                  Name
-                  {sorts.name.show ? ' ' + sorts.name.icon : ''}
-                </Button>
-              </th>
-              <th>
-                <Button variant="outline-secondary" onClick={sortCreated}>
-                  Created
-                  {sorts.createdDate.show ? ' ' + sorts.createdDate.icon : ''}
-                </Button>
-              </th>
-              <th>
-                <Button variant="outline-secondary" onClick={sortSize}>
-                  Size
-                  {sorts.size.show ? ' ' + sorts.size.icon : ''}
-                </Button>
-              </th>
-              <th style={{ fontWeight: 500 }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {folderData &&
-              folderData.map((folder, index) => {
-                return (
-                  <FolderTableItem
-                    key={index}
-                    folder={folder}
-                    updatePath={updatePath}
-                    downloadFunc={downloadFunc}
-                    deleteFunc={handleDeleteItem}
-                    renameFunc={renameFunc}
-                  />
-                );
-              })}
-            {fileData &&
-              fileData.map((file, index) => {
-                return (
-                  <FileTableItem
-                    key={index}
-                    file={file}
-                    deleteFunc={handleDeleteItem}
-                    downloadFunc={downloadFunc}
-                    renameFunc={renameFunc}
-                    changeCheckboxState={changeFileCheckboxState}
-                  />
-                );
-              })}
-          </tbody>
-        </Table>
-        {(() => {
-          if (fileData.length === 0 && folderData.length === 0)
-            return (
-              <div style={{ textAlign: 'center' }}>
-                <p style={{ fontWeight: 'bold', opacity: 0.8 }}>
-                  There are no items in this folder
-                </p>
-                <p>
-                  Drag files and folders here to upload, or click the upload
-                  button on the top right to browse files from your computer.
-                </p>
-              </div>
-            );
-        })()}
-      </Container>
+          })()}
+        </Container>
+      </div>
     </div>
   );
 };
