@@ -98,14 +98,16 @@ const LoginForm = () => {
             <img src={logo} className="logo" />
           </div>
 
-          <Form onSubmit={onSubmit}>
+          <h2 className="text-center mb-5">Sign In to Your Account</h2>
+
+          <Form onSubmit={onSubmit} className="px-5">
             <Form.Group controlId="formHandle">
               <Form.Control
                 type="password"
                 placeholder="Enter your handle here"
                 value={handle}
                 onChange={(e) => setHandle(e.target.value)}
-                className="mb-2"
+                className="mb-2 py-2"
                 autoFocus
               />
 
@@ -129,8 +131,8 @@ const LoginForm = () => {
             })()}
 
             <div className="submit">
-              <Button variant="primary" type="submit" size="lg">
-                Sign In
+              <Button variant="primary" type="submit" size="md">
+                LOGIN
               </Button>
             </div>
           </Form>

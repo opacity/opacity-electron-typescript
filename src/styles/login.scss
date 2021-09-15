@@ -22,6 +22,8 @@
     width: 80%;
     min-width: 450px;
     border-radius: 20px;
+    padding-top: 30px;
+    padding-bottom: 30px;
 
     .logo {
       display: flex;
@@ -33,6 +35,10 @@
       display: flex;
       justify-content: center;
       margin-top: 10px;
+
+      .btn {
+        width: 100%;
+      }
     }
   }
 }

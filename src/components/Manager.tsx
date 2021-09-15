@@ -12,7 +12,7 @@ import Table from 'react-bootstrap/Table';
 import Button from 'react-bootstrap/Button';
 import ButtonGroup from 'react-bootstrap/ButtonGroup';
 import ButtonToolbar from 'react-bootstrap/ButtonToolbar';
-import Card from 'react-bootstrap/Card';
+import { AiFillHome } from 'react-icons/ai';
 import Swal from 'sweetalert2';
 import Styled from 'styled-components';
 // import * as Utils from './../../opacity/Utils';
@@ -77,7 +77,7 @@ const Manager = () => {
   //reference needed to use folderPath in useEffect
   const refFolderPath = useRef(folderPath);
   refFolderPath.current = folderPath;
-  const [folders, setFolders] = useState(['All Files']);
+  const [folders, setFolders] = useState(['home']);
   const [metadata, setMetadata] = useState(false);
   const [filesForZip, setFilesForZip] = useState([]);
   const [updateCurrentFolderSwitch, setUpdateCurrentFolderSwitch] = useState(
@@ -169,27 +169,6 @@ const Manager = () => {
 
   useEffect(() => {
     setTimeout(async () => {
-      // const fileSystemObject = new FileSystemObject({
-      //   handle: undefined,
-      //   location: undefined,
-      //   config: {
-      //     net: netMiddleware,
-      //     crypto: cryptoMiddleware,
-      //     storageNode: storageNode,
-      //   },
-      // });
-      // const metadataAccess = new MetadataAccess({
-      //   net: netMiddleware,
-      //   crypto: cryptoMiddleware,
-      //   metadataNode: storageNode,
-      // });
-      // const accountSystem = new AccountSystem({ metadataAccess });
-      // const account = new Account({
-      //   crypto: cryptoMiddleware,
-      //   net: netMiddleware,
-      //   storageNode,
-      // });
-
       Promise.all([
         accountSystem.getFoldersInFolderByPath(folderPath),
         folderPath == '/'
@@ -209,7 +188,6 @@ const Manager = () => {
                 });
             })
           ).then((processedData) => {
-            console.log('detailed folder data:', processedData);
             setFolderData(processedData);
           });
 
@@ -220,7 +198,6 @@ const Manager = () => {
               })
             )
           ).then((processedData) => {
-            console.log('detailed file data:', processedData);
             setFileData(processedData);
           });
         })
@@ -367,8 +344,6 @@ const Manager = () => {
         bindUploadToAccountSystem(accountSystem, upload);
 
         upload.addEventListener(UploadEvents.START, async () => {
-          // console.log(currentPathRef.current, path);
-
           if (isPathChild(folderPath, path)) {
             // setPageLoading(true);
             setUpdateCurrentFolderSwitch(!updateCurrentFolderSwitch);
@@ -411,7 +386,6 @@ const Manager = () => {
         const release = await fileUploadMutex.acquire();
         try {
           const stream = await upload.start();
-          console.log('uploading,,,,,,');
 
           if (stream) {
             // TODO: Why does it do this?
@@ -420,30 +394,35 @@ const Manager = () => {
             );
           } else {
           }
-          await upload.finish();
 
-          let templistdone = currentUploadingList.current.slice();
-          let index = templistdone.findIndex((ele) => ele.id === toastID);
-          if (index > -1) {
-            templistdone[index].percent = 100;
-            setUploadingList(templistdone);
-          }
-          if (path === folderPath) {
-            setPageLoading(true);
-            const folderMeta = await accountSystem.getFolderMetadataByPath(
-              folderPath
-            );
-            Promise.all(
-              folderMeta.files.map((file) =>
-                accountSystem._getFileMetadata(file.location).then((f) => {
-                  return f;
-                })
-              )
-            ).then((processedData) => {
-              setFileData(processedData);
-              setPageLoading(false);
-            });
-          }
+          upload.finish().then(async () => {
+            let templistdone = currentUploadingList.current.slice();
+            let index = templistdone.findIndex((ele) => ele.id === toastID);
+
+            if (index > -1) {
+              templistdone[index].percent = 100;
+
+              setUploadingList(templistdone);
+            }
+            if (path === folderPath) {
+              setPageLoading(true);
+
+              const folderMeta = await accountSystem.getFolderMetadataByPath(
+                folderPath
+              );
+
+              Promise.all(
+                folderMeta.files.map((file) =>
+                  accountSystem._getFileMetadata(file.location).then((f) => {
+                    return f;
+                  })
+                )
+              ).then((processedData) => {
+                setFileData(processedData);
+                setPageLoading(false);
+              });
+            }
+          });
         } finally {
           release();
         }
@@ -626,7 +605,6 @@ const Manager = () => {
 
   const handleDeleteItem = React.useCallback(
     async (item: FolderFileEntry | FoldersIndexEntry, isFile: boolean) => {
-      console.log('isFile', isFile, item);
       let fileToDelete, folderToDelete;
       if (isFile) fileToDelete = item as FolderFileEntry;
       else folderToDelete = item as FoldersIndexEntry;
@@ -719,7 +697,6 @@ const Manager = () => {
   }
 
   function updatePath(newPath: string) {
-    console.log(folderPath, newPath);
     const updatedPath = Path.join(folderPath, newPath);
     setFolderPath(updatedPath);
     // ipcRenderer.send('path:update', updatedPath);
@@ -874,18 +851,32 @@ const Manager = () => {
             }}
           />
           <ButtonToolbar
-            className="justify-content-between"
+            className="justify-content-between toolbar"
             aria-label="Toolbar with Button groups"
           >
-            <ButtonGroup>
+            <div className="d-flex align-items-center">
               {folders.map((folder, index) => {
                 return (
-                  <Card key={index}>
-                    <Button onClick={() => goBackTo(index)}>{folder}</Button>
-                  </Card>
+                  <>
+                    <a
+                      className="breadcrumb-item"
+                      onClick={() => goBackTo(index)}
+                      href="javascript:void(0)"
+                    >
+                      {folder === 'home' ? (
+                        <AiFillHome className="mb-1" />
+                      ) : (
+                        folder
+                      )}
+                    </a>
+                    {index < folders.length - 1 && (
+                      <span className="mx-2 font-weight-bold">{'>'}</span>
+                    )}
+                  </>
                 );
               })}
-            </ButtonGroup>
+            </div>
+
             <ActionButtons
               metadata={metadata}
               folderPath={folderPath}
