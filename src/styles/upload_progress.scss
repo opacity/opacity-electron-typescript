@@ -77,4 +77,29 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+
+  .icon-cancel {
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    content: url('../../assets/upload-cancel.svg');
+    -webkit-mask: url('../../assets/upload-cancel.svg') no-repeat center;
+    -webkit-mask-size: contain;
+  }
+  .icon-warning {
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    content: url('../../assets/upload-warning.svg');
+    -webkit-mask: url('../../assets/upload-warning.svg') no-repeat center;
+    -webkit-mask-size: contain;
+  }
+  .icon-completed {
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    content: url('../../assets/upload-completed.svg');
+    -webkit-mask: url('../../assets/upload-completed.svg') no-repeat center;
+    -webkit-mask-size: contain;
+  }
 }

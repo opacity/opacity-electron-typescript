@@ -69,6 +69,8 @@ const Checkbox = Styled.input.attrs({
   type: 'checkbox',
 })``;
 
+let fileUploadingList: ProgressItem[] = [];
+
 const Manager = () => {
   const { dialog } = require('electron').remote;
   const { handle } = localStorage;
@@ -140,7 +142,11 @@ const Manager = () => {
   const [totalItemsToDelete, setTotalItemsToDelete] = React.useState(0);
   const [count, setCount] = React.useState(0);
 
-  const fileUploadMutex = React.useMemo(() => new Mutex(), []);
+  const [currentUploader, setCurrentUploader] = React.useState<OpaqueUpload>(
+    null
+  );
+  const [, setProcessChange] = React.useState();
+
   const relativePath = React.useCallback(
     (path: string) => path.substr(0, path.lastIndexOf('/')),
     []
@@ -226,6 +232,55 @@ const Manager = () => {
       setPageLoading(false);
     }
   }, [filesForZip]);
+
+  const handleCancelUpload = React.useCallback(
+    async (item) => {
+      let currentID =
+        currentUploader?.metadata?.size +
+        currentUploader?.name +
+        currentUploader?.path;
+      let cancelledId: string = '';
+      console.log(currentID, item.id);
+
+      if (currentID === item.id) {
+        console.log('cancelling current upload');
+        await currentUploader.cancel();
+        console.log('Upload cancelled');
+        cancelledId = currentID;
+      } else {
+        cancelledId = item.id;
+      }
+      console.log('cancelledId', cancelledId);
+      let templist = fileUploadingList;
+      let index = templist.findIndex((ele) => ele.id === cancelledId);
+      if (index > -1) {
+        templist[index].percent = 100;
+        templist[index].status = 'cancelled';
+        fileUploadingList = templist;
+        setUploadingList(templist);
+        setProcessChange({});
+      }
+    },
+    [currentUploader]
+  );
+
+  const handleCancelAllUpload = React.useCallback(async () => {
+    if (fileUploadingList.find((item) => item.percent !== 100)) {
+      await currentUploader.cancel();
+      let templist = fileUploadingList.map((item) => {
+        return item.percent !== 100
+          ? {
+              ...item,
+              percent: 100,
+              status: 'cancelled',
+            }
+          : item;
+      });
+      fileUploadingList = templist;
+      setUploadingList(templist);
+      setProcessChange({});
+    }
+  }, [currentUploader]);
 
   const addNewFolder = React.useCallback(
     async (folderName) => {
@@ -326,9 +381,20 @@ const Manager = () => {
     [cryptoMiddleware, netMiddleware, storageNode]
   );
 
+  const fileUploadMutex = React.useMemo(() => new Mutex(), []);
+
   const uploadFile = React.useCallback(
     async (file: File, path: string) => {
       try {
+        let toastID = file.size + file.name + path;
+
+        let index = fileUploadingList.findIndex((ele) => ele.id === toastID);
+        if (index > -1 && fileUploadingList[index].status === 'cancelled') {
+          return;
+        }
+
+        var release = await fileUploadMutex.acquire();
+
         const upload = new OpaqueUpload({
           config: {
             crypto: cryptoMiddleware,
@@ -339,42 +405,23 @@ const Manager = () => {
           name: file.name,
           path: path,
         });
-        let toastID = file.size + file.name;
+
+        setCurrentUploader(upload);
+
         // side effects
         bindUploadToAccountSystem(accountSystem, upload);
 
-        upload.addEventListener(UploadEvents.START, async () => {
-          if (isPathChild(folderPath, path)) {
-            // setPageLoading(true);
-            setUpdateCurrentFolderSwitch(!updateCurrentFolderSwitch);
-          }
-
-          if (path == folderPath) {
-            // setPageLoading(true);
-            // const folderMeta = await accountSystem.getFolderMetadataByPath(
-            //   folderPath
-            // );
-            // Promise.all(
-            //   folderMeta.files.map((file) =>
-            //     accountSystem._getFileMetadata(file.location).then((f) => {
-            //       return f;
-            //     })
-            //   )
-            // ).then((processedData) => {
-            //   console.log('detailed file data on Upload:', processedData);
-            //   setFileData(processedData);
-            //   setPageLoading(false);
-            // });
-          }
-        });
         upload.addEventListener(
           UploadEvents.PROGRESS,
           (e: UploadProgressEvent) => {
-            let templist = currentUploadingList.current.slice();
+            let templist = fileUploadingList;
             let index = templist.findIndex((ele) => ele.id === toastID);
             if (index > -1) {
               templist[index].percent = e.detail.progress * 100;
+              templist[index].status = 'uploading';
+              fileUploadingList = templist;
               setUploadingList(templist);
+              setProcessChange({});
             }
           }
         );
@@ -383,7 +430,6 @@ const Manager = () => {
           file.stream()
         );
 
-        const release = await fileUploadMutex.acquire();
         try {
           const stream = await upload.start();
 
@@ -392,41 +438,47 @@ const Manager = () => {
             fileStream.pipeThrough(
               (stream as TransformStream<Uint8Array, Uint8Array>) as any
             );
-          } else {
           }
 
-          upload.finish().then(async () => {
-            let templistdone = currentUploadingList.current.slice();
-            let index = templistdone.findIndex((ele) => ele.id === toastID);
+          await upload.finish();
 
-            if (index > -1) {
-              templistdone[index].percent = 100;
+          let templistdone = fileUploadingList;
+          let index = templistdone.findIndex((ele) => ele.id === toastID);
 
-              setUploadingList(templistdone);
-            }
-            if (path === folderPath) {
-              setPageLoading(true);
+          if (index > -1) {
+            templistdone[index].percent = 100;
+            templistdone[index].status = 'completed';
 
-              const folderMeta = await accountSystem.getFolderMetadataByPath(
-                folderPath
-              );
-
-              Promise.all(
-                folderMeta.files.map((file) =>
-                  accountSystem._getFileMetadata(file.location).then((f) => {
-                    return f;
-                  })
-                )
-              ).then((processedData) => {
-                setFileData(processedData);
-                setPageLoading(false);
-              });
-            }
-          });
+            fileUploadingList = templistdone;
+            setUploadingList(templistdone);
+            setProcessChange({});
+          }
         } finally {
+          console.log('Finally');
           release();
+          console.log('released');
+
+          if (path === folderPath) {
+            setPageLoading(true);
+
+            const folderMeta = await accountSystem.getFolderMetadataByPath(
+              folderPath
+            );
+
+            Promise.all(
+              folderMeta.files.map((file) =>
+                accountSystem._getFileMetadata(file.location).then((f) => {
+                  return f;
+                })
+              )
+            ).then((processedData) => {
+              setFileData(processedData);
+              setPageLoading(false);
+            });
+          }
         }
       } catch (e) {
+        console.log('catching error');
         console.error(e);
       }
     },
@@ -480,14 +532,22 @@ const Manager = () => {
 
   const selectFiles = React.useCallback(
     async (files) => {
-      let templist = currentUploadingList.current.slice();
+      let templist = fileUploadingList;
 
       files.forEach((file: File) => {
-        let toastID = file.size + file.name;
-        templist.push({ id: toastID, fileName: file.name, percent: 0 });
+        const path = pathGenerator(file);
+        let toastID = file.size + file.name + path;
+        templist.push({
+          id: toastID,
+          fileName: file.name,
+          percent: 0,
+          status: 'active',
+        });
       });
 
+      fileUploadingList = templist;
       setUploadingList(templist);
+      setProcessChange({});
 
       for (const file of files) {
         const path = pathGenerator(file);
@@ -840,7 +900,12 @@ const Manager = () => {
         <Container fluid>
           <UploadProgress
             list={uploadingList}
-            clearList={() => setUploadingList([])}
+            clearList={() => {
+              setUploadingList([]);
+              fileUploadingList = [];
+            }}
+            onCancel={handleCancelUpload}
+            onCancelAll={handleCancelAllUpload}
           />
           <DeletingProgress
             total={totalItemsToDelete}
@@ -861,7 +926,7 @@ const Manager = () => {
                     <a
                       className="breadcrumb-item"
                       onClick={() => goBackTo(index)}
-                      href="javascript:void(0)"
+                      href="#"
                     >
                       {folder === 'home' ? (
                         <AiFillHome className="mb-1" />
