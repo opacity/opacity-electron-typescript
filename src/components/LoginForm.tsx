@@ -56,7 +56,7 @@ const LoginForm = () => {
           if (acc.paymentStatus === 'paid') {
             localStorage.setItem('handle', handle);
             localStorage.setItem('autoLogin', save ? 'enabled' : '');
-            history.push('/manager');
+            history.push('/splash');
           }
         })
         .catch(() => {

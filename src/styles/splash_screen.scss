@@ -1,0 +1,43 @@
+.splash-page {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  padding: 80px 50px;
+  overflow: auto;
+
+  h1 {
+    text-align: center;
+    color: #2e6dde;
+  }
+
+  p {
+    margin: 50px;
+    text-align: center;
+  }
+
+  .splash-image-container {
+    height: 50%;
+
+    .splash-image {
+      width: auto;
+      height: 100%;
+      max-width: calc(100% - 200px);
+
+      @media screen and (max-width: 670px) {
+        width: 100%;
+        height: inherit;
+      }
+    }
+  }
+
+  .button-container {
+    display: flex;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    justify-content: space-between;
+  }
+}

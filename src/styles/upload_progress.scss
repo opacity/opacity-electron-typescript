@@ -14,6 +14,26 @@
     overflow: auto;
   }
 
+  .subheader {
+    height: 30px;
+    background: #dae0e8;
+    font-size: 13px;
+    line-height: 15px;
+    color: #5f5353;
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    align-items: center;
+
+    .cancel-button {
+      color: #2e6dde;
+      cursor: pointer;
+      &:hover {
+        color: #dc1a1a;
+      }
+    }
+  }
+
   &.minimize {
     .card-header {
       .icon-down {
@@ -52,6 +72,7 @@
       }
     }
   }
+
   .percent {
     min-width: 22px;
     width: 22px;

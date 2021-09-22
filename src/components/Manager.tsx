@@ -393,6 +393,8 @@ const Manager = () => {
           return;
         }
 
+        console.log('logging on upload File 1');
+
         var release = await fileUploadMutex.acquire();
 
         const upload = new OpaqueUpload({
@@ -408,6 +410,7 @@ const Manager = () => {
 
         setCurrentUploader(upload);
 
+        console.log('logging 2');
         // side effects
         bindUploadToAccountSystem(accountSystem, upload);
 
@@ -433,6 +436,7 @@ const Manager = () => {
         try {
           const stream = await upload.start();
 
+          console.log('logging3: inner try');
           if (stream) {
             // TODO: Why does it do this?
             fileStream.pipeThrough(
@@ -442,6 +446,7 @@ const Manager = () => {
 
           await upload.finish();
 
+          console.log('logging4: upload finish');
           let templistdone = fileUploadingList;
           let index = templistdone.findIndex((ele) => ele.id === toastID);
 
@@ -479,7 +484,7 @@ const Manager = () => {
         }
       } catch (e) {
         console.log('catching error');
-        console.error(e);
+        // console.error(e);
       }
     },
     [

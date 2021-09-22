@@ -90,6 +90,14 @@ const UploadProgress: React.FC<Props> = ({
       </Card.Header>
 
       <div className="upload-progress-body">
+        <div className="subheader">
+          <div>{completed === list.length ? 'Done!' : 'Uploading'}</div>
+
+          <div className="cancel-button" onClick={() => onCancelAll()}>
+            CANCEL
+          </div>
+        </div>
+
         <ListGroup variant="flush">
           {list?.map((item: ProgressItem) => (
             <UploadProgressItem
