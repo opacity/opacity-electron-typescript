@@ -2,7 +2,15 @@ import { ipcRenderer } from 'electron';
 import React, { useState, useRef, ReactNode } from 'react';
 import Button from 'react-bootstrap/Button';
 import ButtonGroup from 'react-bootstrap/ButtonGroup';
-import Card from 'react-bootstrap/Card';
+import {
+  AiFillFolderAdd,
+  AiOutlineCloudUpload,
+  AiOutlineDelete,
+  AiOutlineDownload,
+  AiOutlineSelect,
+  AiOutlineUpload,
+} from 'react-icons/ai';
+import { FiCheck, FiLogOut } from 'react-icons/fi';
 import { useHistory } from 'react-router-dom';
 import Swal from 'sweetalert2';
 
@@ -188,39 +196,60 @@ const ActionButtons = ({
   };
 
   return (
-    <ButtonGroup>
-      <Card>
-        <Button disabled={!massButtons} onClick={() => downloadFunc()}>
-          Download
-        </Button>
-      </Card>
-      <Card className="mr-1">
-        <Button disabled={!massButtons} onClick={() => deleteSelected()}>
-          Delete
-        </Button>
-      </Card>
-      <Card className="mr-1">
-        <Button onClick={() => newFolder()}>Create Folder</Button>
-      </Card>
-      <Card>
-        <UploadForm
-          isDirectory={true}
-          onSelected={(files) => uploadFunc(files)}
-        >
-          <Button>Upload Folder</Button>
-        </UploadForm>
-      </Card>
-      <Card>
-        <UploadForm
-          isDirectory={false}
-          onSelected={(files) => uploadFunc(files)}
-        >
-          <Button>Upload Files</Button>
-        </UploadForm>
-      </Card>
-      <Card className="ms-2">
-        <Button onClick={() => handleLogout()}>Log Out</Button>
-      </Card>
+    <ButtonGroup className="action-buttons">
+      {!!massButtons && (
+        <>
+          <div className="selected">
+            <FiCheck size={24} />
+            <span className="ms-2">{massButtons} File(s) Selected</span>
+          </div>
+
+          <Button
+            disabled={!massButtons}
+            onClick={() => downloadFunc()}
+            className="ms-5"
+          >
+            <AiOutlineDownload size={24} />
+            &nbsp;Download
+          </Button>
+
+          <Button disabled={!massButtons} onClick={() => deleteSelected()}>
+            <AiOutlineDelete size={24} />
+            &nbsp;Delete
+          </Button>
+        </>
+      )}
+
+      {!massButtons && (
+        <>
+          <Button onClick={() => newFolder()}>
+            <AiFillFolderAdd size={24} />
+            &nbsp;New Folder
+          </Button>
+          <UploadForm
+            isDirectory={true}
+            onSelected={(files) => uploadFunc(files)}
+          >
+            <Button>
+              <AiOutlineCloudUpload size={24} />
+              &nbsp; Upload Folder
+            </Button>
+          </UploadForm>
+          <UploadForm
+            isDirectory={false}
+            onSelected={(files) => uploadFunc(files)}
+          >
+            <Button>
+              <AiOutlineUpload size={24} />
+              &nbsp; Upload Files
+            </Button>
+          </UploadForm>
+        </>
+      )}
+
+      <Button onClick={() => handleLogout()} className="ms-3">
+        <FiLogOut size={24} /> &nbsp; Log Out
+      </Button>
     </ButtonGroup>
   );
 };

@@ -733,10 +733,12 @@ const Manager = () => {
     });
 
     if (checked) {
-      setMassButtons(true);
+      // setMassButtons(true);
+      setMassButtons(copyMetadata.length);
       setSelectAllCheckbox(true);
     } else {
-      setMassButtons(false);
+      // setMassButtons(false);
+      setMassButtons(0);
       setSelectAllCheckbox(false);
     }
     setMetadata(copyMetadata);
@@ -752,12 +754,13 @@ const Manager = () => {
     // const checkedFolders = copyMetadata.folders.find(
     //   (folder) => folder.checked
     // );
-    const checkedFiles = copyMetadata.find((file) => file.checked);
-    if (checkedFiles) {
-      setMassButtons(true);
-    } else {
-      setMassButtons(false);
-    }
+    const checkedFiles = copyMetadata.filter((file) => file.checked).length;
+    setMassButtons(checkedFiles);
+    // if (checkedFiles) {
+    //   setMassButtons(true);
+    // } else {
+    //   setMassButtons(false);
+    // }
     setFileData(copyMetadata);
   }
 

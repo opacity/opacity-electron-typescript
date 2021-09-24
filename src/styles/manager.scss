@@ -69,12 +69,32 @@ th {
 .breadcrumb-item {
   text-decoration: none;
   font-size: 18px;
-  color: black;
+  color: white;
 }
 
 .toolbar {
-  // background-color: #2e6dde;
-  // color: white;
+  background-color: #2e6dde;
+  color: white;
   padding: 10px 15px;
   margin: auto -12px;
+}
+
+.action-buttons {
+  .btn {
+    border: none;
+    outline: none;
+    background-color: transparent;
+    display: flex;
+    align-items: center;
+  }
+
+  .selected {
+    font-weight: 400;
+    line-height: 1.5;
+    text-align: center;
+    text-decoration: none;
+    vertical-align: middle;
+    align-items: center;
+    display: flex;
+  }
 }

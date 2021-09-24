@@ -59,10 +59,6 @@ const SplashScreen = () => {
           </Button>
         </div>
 
-        <div>
-          <img src={logo} width={70} />
-        </div>
-
         <div className="d-flex align-items-center">
           <Button className="d-flex align-items-center" onClick={onNext}>
             {currentPage === 0 && (
