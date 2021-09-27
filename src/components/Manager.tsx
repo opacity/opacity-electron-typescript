@@ -602,6 +602,29 @@ const Manager = () => {
     [accountSystem, updateCurrentFolderSwitch]
   );
 
+  const deleteMultiFile = React.useCallback(
+    async (files: FileMetadata[]) => {
+      try {
+        const fso = new FileSystemObject({
+          handle: files[0].private.handle,
+          location: undefined,
+          config: {
+            net: netMiddleware,
+            crypto: cryptoMiddleware,
+            storageNode: storageNode,
+          },
+        });
+        bindFileSystemObjectToAccountSystem(accountSystem, fso);
+        await fso.deleteMultiFile(files);
+        await accountSystem.removeMultiFile(files.map((item) => item.location));
+      } catch (e) {
+        await accountSystem.removeMultiFile(files.map((item) => item.location));
+        toast.error(`An error occurred while deleting selected files.`);
+      }
+    },
+    [accountSystem, updateCurrentFolderSwitch]
+  );
+
   const deleteFolder = React.useCallback(
     async (folder: FoldersIndexEntry) => {
       try {
@@ -676,7 +699,7 @@ const Manager = () => {
       // setShowDeleteModal(true);
       const { value: result } = await Swal.fire({
         title: 'Are you sure?',
-        html: `You won't be able to revert this!<br/>Deleting: ${name}`,
+        html: `You won't be able to revert this!`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#3085d6',
@@ -714,12 +737,10 @@ const Manager = () => {
         );
       }
     } else {
-      setTotalItemsToDelete(selectedFiles.length);
+      setTotalItemsToDelete(1);
       setCount(0);
-      for (const file of selectedFiles) {
-        await deleteFile(file);
-        setCount((count) => count + 1);
-      }
+      await deleteMultiFile(selectedFiles);
+      setCount(1);
       setUpdateCurrentFolderSwitch(!updateCurrentFolderSwitch);
     }
     changeAllCheckboxState(false);
@@ -810,11 +831,6 @@ const Manager = () => {
       ).then(() =>
         Swal.fire('', `Renamed ${item.name} into ${newName}`, 'success')
       );
-      // ipcRenderer.send('file:rename', {
-      //   folder: folderPath,
-      //   item,
-      //   newName: newName,
-      // });
     }
   }
 

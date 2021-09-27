@@ -183,6 +183,11 @@ export type AccountUpdateAPIVersionRes = {
 
 export class Account {
 	config: AccountConfig
+	_waitingTimer
+
+	get waitingTimer () {
+		return this._waitingTimer
+	}
 
 	constructor (config: AccountConfig) {
 		this.config = config
@@ -328,11 +333,11 @@ export class Account {
 				if (iTime > 10) {
 					iTime = 10
 				}
-				setTimeout(iFn, iTime * 1000)
+				this._waitingTimer = setTimeout(iFn, iTime * 1000)
 			}
 		}
 
-		setTimeout(iFn, iTime)
+		this._waitingTimer = setTimeout(iFn, iTime)
 
 		await done
 	}
@@ -360,13 +365,6 @@ export class Account {
 	}
 
 	async renewAccount ({ duration = 12 }: AccountRenewArgs): Promise<AccountRenewInvoice> {
-		try {
-			const info = await this.info()
-
-			if (info.invoice) {
-				return info.invoice
-			}
-		} catch {}
 
 		const payload = await getPayload<AccountRenewPayload>({
 			crypto: this.config.crypto,
@@ -404,11 +402,11 @@ export class Account {
 				if (iTime > 10) {
 					iTime = 10
 				}
-				setTimeout(iFn, iTime * 1000)
+				this._waitingTimer = setTimeout(iFn, iTime * 1000)
 			}
 		}
 
-		setTimeout(iFn, iTime)
+		this._waitingTimer = setTimeout(iFn, iTime)
 
 		await done
 	}
@@ -438,14 +436,6 @@ export class Account {
 	}
 
 	async upgradeAccount ({ size, duration = 12 }: AccountUpgradeArgs): Promise<AccountUpgradeInvoice> {
-		try {
-			const info = await this.info()
-
-			if (info.invoice) {
-				return info.invoice
-			}
-		} catch {}
-
 		const payload = await getPayload<AccountUpgradePayload>({
 			crypto: this.config.crypto,
 			payload: {
@@ -483,12 +473,16 @@ export class Account {
 				if (iTime > 10) {
 					iTime = 10
 				}
-				setTimeout(iFn, iTime * 1000)
+				this._waitingTimer = setTimeout(iFn, iTime * 1000)
 			}
 		}
 
-		setTimeout(iFn, iTime)
+		this._waitingTimer = setTimeout(iFn, iTime)
 
 		await done
+	}
+
+	async cancelWaitForPayment () {
+		this._waitingTimer && clearTimeout(this._waitingTimer)
 	}
 }

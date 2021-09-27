@@ -47,29 +47,42 @@ const SplashScreen = () => {
       </div>
 
       <div className="button-container px-2 pb-2">
-        <div className="d-flex align-items-center">
-          <Button
-            className="d-flex align-items-center"
-            disabled={currentPage === 0}
-            variant="secondary"
-            onClick={() => setCurrentPage(currentPage - 1)}
-          >
-            <AiOutlineArrowLeft />
-            <span className="ms-2">Back</span>
-          </Button>
+        <div>
+          <img src={logo} width={70} />
         </div>
 
         <div className="d-flex align-items-center">
-          <Button className="d-flex align-items-center" onClick={onNext}>
-            {currentPage === 0 && (
-              <>
-                <span>Next</span>
-                <AiOutlineArrowRight className="ms-2" />
-              </>
-            )}
+          {currentPage !== 0 && (
+            <div className="d-flex align-items-center me-2">
+              <Button
+                className="d-flex align-items-center"
+                disabled={currentPage === 0}
+                variant="secondary"
+                size="sm"
+                onClick={() => setCurrentPage(currentPage - 1)}
+              >
+                <AiOutlineArrowLeft />
+                <span className="ms-2">Back</span>
+              </Button>
+            </div>
+          )}
 
-            {currentPage === 1 && 'Get Started'}
-          </Button>
+          <div className="d-flex align-items-center">
+            <Button
+              className="d-flex align-items-center"
+              size="sm"
+              onClick={onNext}
+            >
+              {currentPage === 0 && (
+                <>
+                  <span>Next</span>
+                  <AiOutlineArrowRight className="ms-2" />
+                </>
+              )}
+
+              {currentPage === 1 && 'Get Started'}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
