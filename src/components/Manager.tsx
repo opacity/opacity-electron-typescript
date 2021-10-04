@@ -64,6 +64,7 @@ import { ProgressItem } from '../interfaces';
 
 import '../styles/manager.scss';
 import DeletingProgress from './DeletingProgress';
+import { Spinner } from 'react-bootstrap';
 
 const Checkbox = Styled.input.attrs({
   type: 'checkbox',
@@ -82,6 +83,7 @@ const Manager = () => {
   const [folders, setFolders] = useState(['home']);
   const [metadata, setMetadata] = useState(false);
   const [filesForZip, setFilesForZip] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [updateCurrentFolderSwitch, setUpdateCurrentFolderSwitch] = useState(
     false
   );
@@ -175,6 +177,7 @@ const Manager = () => {
 
   useEffect(() => {
     setTimeout(async () => {
+      setLoading(true);
       Promise.all([
         accountSystem.getFoldersInFolderByPath(folderPath),
         folderPath == '/'
@@ -185,26 +188,29 @@ const Manager = () => {
           console.log('folders:', folders);
           console.log('folderMeta:', folderMeta);
 
-          Promise.all(
-            folders.map((folder) => {
-              return accountSystem
-                ._getFolderMetadataByLocation(folder.location)
-                .then((f) => {
-                  return f;
-                });
-            })
-          ).then((processedData) => {
-            setFolderData(processedData);
-          });
-
-          Promise.all(
-            folderMeta.files.map((file) =>
-              accountSystem._getFileMetadata(file.location).then((f) => {
-                return f;
+          Promise.all([
+            Promise.all(
+              folders.map((folder) => {
+                return accountSystem
+                  ._getFolderMetadataByLocation(folder.location)
+                  .then((f) => {
+                    return f;
+                  });
               })
-            )
-          ).then((processedData) => {
-            setFileData(processedData);
+            ).then((processedData) => {
+              setFolderData(processedData);
+            }),
+            Promise.all(
+              folderMeta.files.map((file) =>
+                accountSystem._getFileMetadata(file.location).then((f) => {
+                  return f;
+                })
+              )
+            ).then((processedData) => {
+              setFileData(processedData);
+            }),
+          ]).then(() => {
+            setLoading(false);
           });
         })
         .catch((err) => {
@@ -635,30 +641,46 @@ const Manager = () => {
           folder.path
         );
 
+        const fileMetaListInFolder = [];
         for (const file of folderMeta.files) {
           const metaFile = await accountSystem.getFileIndexEntryByFileMetadataLocation(
             file.location
           );
-          // await cancelPublicShare(metaFile);
-          const fso = new FileSystemObject({
-            handle: metaFile.private.handle,
-            location: undefined,
-            config: {
-              net: netMiddleware,
-              crypto: cryptoMiddleware,
-              storageNode: storageNode,
-            },
-          });
-          bindFileSystemObjectToAccountSystem(accountSystem, fso);
-          await fso.delete();
-          setCount((count) => count + 1);
+          fileMetaListInFolder.push(metaFile);
         }
+
+        fileMetaListInFolder.length > 0 &&
+          (await deleteMultiFile(fileMetaListInFolder));
+
+        setCount((count) => count + fileMetaListInFolder.length);
+
+        // for (const file of folderMeta.files) {
+        //   const metaFile = await accountSystem.getFileIndexEntryByFileMetadataLocation(
+        //     file.location
+        //   );
+        //   // await cancelPublicShare(metaFile);
+        //   const fso = new FileSystemObject({
+        //     handle: metaFile.private.handle,
+        //     location: undefined,
+        //     config: {
+        //       net: netMiddleware,
+        //       crypto: cryptoMiddleware,
+        //       storageNode: storageNode,
+        //     },
+        //   });
+        //   bindFileSystemObjectToAccountSystem(accountSystem, fso);
+        //   await fso.delete();
+        //   setCount((count) => count + 1);
+        // }
 
         for (const folderItem of folders) {
           await deleteFolder(folderItem);
         }
+        // setCount(totalItemsToDelete);
 
         await accountSystem.removeFolderByPath(folder.path);
+
+        // setCount((count) => count + 1);
       } catch (e) {
         console.error(e);
         // setFolderToDelete(null);
@@ -721,9 +743,10 @@ const Manager = () => {
 
     if (selectedFiles.length === 0) {
       if (folderToDelete) {
-        setTotalItemsToDelete(await calculateTotalItems(folderToDelete));
+        setTotalItemsToDelete((await calculateTotalItems(folderToDelete)) + 1);
         setCount(0);
         await deleteFolder(folderToDelete);
+        setCount((count) => count + 1);
         setUpdateCurrentFolderSwitch(
           (updateCurrentFolderSwitch) => !updateCurrentFolderSwitch
         );
@@ -908,6 +931,12 @@ const Manager = () => {
 
   return (
     <div className="screen-wrapper" {...getRootProps()}>
+      {loading && (
+        <div className="loader">
+          <Spinner animation="border" />
+        </div>
+      )}
+
       <div>
         <div>
           {isDragActive && (

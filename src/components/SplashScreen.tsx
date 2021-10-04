@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { Button } from 'react-bootstrap';
 import { useHistory } from 'react-router-dom';
 
-import firstSplashImage from '../../assets/splash1.png';
-import secondSplashImage from '../../assets/splash2.png';
+import firstSplashImage from '../../assets/splash1.svg';
+import secondSplashImage from '../../assets/splash2.svg';
+import thirdSplashImage from '../../assets/splash3.svg';
+import getStartedImage from '../../assets/splash4.png';
 import logo from '../../assets/logo2.png';
 import '../styles/splash_screen.scss';
 import { AiOutlineArrowLeft, AiOutlineArrowRight } from 'react-icons/ai';
@@ -13,20 +15,24 @@ const SplashScreen = () => {
   const [currentPage, setCurrentPage] = useState(0);
 
   const onNext = () => {
-    if (currentPage === 0) {
-      setCurrentPage(1);
+    if (currentPage < 3) {
+      setCurrentPage(currentPage + 1);
     } else {
       history.push('/manager');
     }
   };
 
-  const headings = ['Welcome To Opacity Drive!', "Let's Get Started!"];
+  const headings = [
+    'Anonymous File Storage',
+    'One Handle To Access Your Account',
+    'Encrypted At Rest Share Only What You Want',
+    "Let's Get Started!",
+  ];
 
   const descriptions = [
-    `Opacity uses state-of-the-art encryption algorithms to ensure that your
-    files are secure. The Opacity platform encrypts your files at rest to
-    provide comprehensive protection for your files. As long as you protect
-    your Opacity Handle, your data is safe.`,
+    `Get access to file storage without needing to give us any sensitive information like name, phone number or email.`,
+    'Easy sign up and sign in process. Get started in seconds.',
+    'We keep your data safe and secure while giving you granular controls over what you want to share and when.',
     'Upload files or folder by clicking the upload button, or drag & drop from your device to get started.',
   ];
 
@@ -43,6 +49,14 @@ const SplashScreen = () => {
 
         {currentPage === 1 && (
           <img src={secondSplashImage} className="splash-image" />
+        )}
+
+        {currentPage === 2 && (
+          <img src={thirdSplashImage} className="splash-image" />
+        )}
+
+        {currentPage === 3 && (
+          <img src={getStartedImage} className="splash-image" />
         )}
       </div>
 
@@ -73,14 +87,14 @@ const SplashScreen = () => {
               size="sm"
               onClick={onNext}
             >
-              {currentPage === 0 && (
+              {currentPage < 3 && (
                 <>
                   <span>Next</span>
                   <AiOutlineArrowRight className="ms-2" />
                 </>
               )}
 
-              {currentPage === 1 && 'Get Started'}
+              {currentPage === 3 && 'Get Started'}
             </Button>
           </div>
         </div>

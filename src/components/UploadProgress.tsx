@@ -75,7 +75,9 @@ const UploadProgress: React.FC<Props> = ({
       <Card.Header>
         {completed === list.length
           ? 'Completed'
-          : `Uploading ${list.length - completed} items`}
+          : `Uploading ${list.length - completed} item${
+              list.length - completed > 1 ? 's' : ''
+            }`}
         <div>
           <span
             className="icon-down"
@@ -90,13 +92,15 @@ const UploadProgress: React.FC<Props> = ({
       </Card.Header>
 
       <div className="upload-progress-body">
-        <div className="subheader">
-          <div>{completed === list.length ? 'Done!' : 'Uploading'}</div>
+        {completed !== list.length && (
+          <div className="subheader">
+            <div>Uploading</div>
 
-          <div className="cancel-button" onClick={() => onCancelAll()}>
-            CANCEL
+            <div className="cancel-button" onClick={() => onCancelAll()}>
+              CANCEL
+            </div>
           </div>
-        </div>
+        )}
 
         <ListGroup variant="flush">
           {list?.map((item: ProgressItem) => (
