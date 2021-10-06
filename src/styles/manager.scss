@@ -35,6 +35,10 @@ th {
   vertical-align: middle;
 }
 
+th {
+  cursor: pointer;
+}
+
 .dnd-overlay {
   position: fixed;
   background: rgba(0, 0, 0, 0.6);
@@ -81,6 +85,11 @@ th {
   text-decoration: none;
   font-size: 18px;
   color: white;
+  cursor: pointer;
+
+  &:hover {
+    color: rgba(255, 255, 255, 0.6);
+  }
 }
 
 .toolbar {

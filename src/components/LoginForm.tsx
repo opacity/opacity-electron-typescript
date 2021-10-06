@@ -57,7 +57,12 @@ const LoginForm = () => {
           }
           if (acc.paymentStatus === 'paid') {
             localStorage.setItem('handle', handle);
-            localStorage.setItem('autoLogin', save ? 'enabled' : '');
+            localStorage.setItem(
+              'autoLogin',
+              save || localStorage.getItem('autoLogin') === 'enabled'
+                ? 'enabled'
+                : ''
+            );
             history.push('/splash');
           }
         })

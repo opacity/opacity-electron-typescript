@@ -39,16 +39,12 @@ const FolderTableItem: React.FC<FolderTableItemProps> = ({
           onChange={(t) => changeCheckboxState(t.target.checked, folder.handle)}
         /> */}
       </td>
-      <td>
-        <AiFillFolder fontSize="24px" />
+      <td onClick={() => updatePath(folder.name)}>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <AiFillFolder fontSize="24px" />
 
-        <Button
-          variant="outline-info"
-          onClick={() => updatePath(folder.name)}
-          className="ms-2"
-        >
-          {folder.name.slice(0, 64)}
-        </Button>
+          <span className="ms-2">{folder.name.slice(0, 64)}</span>
+        </div>
       </td>
       <td>
         <Moment format="MMM Do YYYY">{new Date(folder.uploaded)}</Moment>

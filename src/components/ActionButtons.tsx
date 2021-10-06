@@ -4,6 +4,7 @@ import Button from 'react-bootstrap/Button';
 import ButtonGroup from 'react-bootstrap/ButtonGroup';
 import {
   AiFillFolderAdd,
+  AiFillQuestionCircle,
   AiOutlineCloudUpload,
   AiOutlineDelete,
   AiOutlineDownload,
@@ -13,6 +14,8 @@ import {
 import { FiCheck, FiLogOut } from 'react-icons/fi';
 import { useHistory } from 'react-router-dom';
 import Swal from 'sweetalert2';
+
+const shell = require('electron').shell;
 
 type UploadFormProps = {
   children: ReactNode | ReactNode[] | null;
@@ -247,8 +250,15 @@ const ActionButtons = ({
         </>
       )}
 
-      <Button onClick={() => handleLogout()} className="ms-3">
-        <FiLogOut size={24} /> &nbsp; Log Out
+      <Button
+        onClick={() => shell.openExternal('https://help.opacity.io')}
+        className="ms-3"
+      >
+        <AiFillQuestionCircle size={24} />
+      </Button>
+
+      <Button onClick={() => handleLogout()} className="">
+        <FiLogOut size={24} />
       </Button>
     </ButtonGroup>
   );

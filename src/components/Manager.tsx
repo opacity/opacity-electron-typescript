@@ -816,6 +816,8 @@ const Manager = () => {
   }
 
   function goBackTo(buttonIndex: number) {
+    if (folders.length === 1) return;
+
     const newPath = folders.slice(0, buttonIndex + 1);
     setFolders(newPath);
     let traversedPath = [...newPath];
@@ -976,17 +978,16 @@ const Manager = () => {
               {folders.map((folder, index) => {
                 return (
                   <>
-                    <a
+                    <span
                       className="breadcrumb-item"
                       onClick={() => goBackTo(index)}
-                      href="#"
                     >
                       {folder === 'home' ? (
                         <AiFillHome className="mb-1" />
                       ) : (
                         folder
                       )}
-                    </a>
+                    </span>
                     {index < folders.length - 1 && (
                       <span className="mx-2 font-weight-bold">{'>'}</span>
                     )}
@@ -1016,23 +1017,17 @@ const Manager = () => {
                   />
                 </th>
                 {/* <th></th> */}
-                <th>
-                  <Button variant="outline-secondary" onClick={sortName}>
-                    Name
-                    {sorts.name.show ? ' ' + sorts.name.icon : ''}
-                  </Button>
+                <th onClick={sortName}>
+                  Name
+                  {sorts.name.show ? ' ' + sorts.name.icon : ''}
                 </th>
-                <th>
-                  <Button variant="outline-secondary" onClick={sortCreated}>
-                    Created
-                    {sorts.createdDate.show ? ' ' + sorts.createdDate.icon : ''}
-                  </Button>
+                <th onClick={sortCreated}>
+                  Created
+                  {sorts.createdDate.show ? ' ' + sorts.createdDate.icon : ''}
                 </th>
-                <th>
-                  <Button variant="outline-secondary" onClick={sortSize}>
-                    Size
-                    {sorts.size.show ? ' ' + sorts.size.icon : ''}
-                  </Button>
+                <th onClick={sortSize}>
+                  Size
+                  {sorts.size.show ? ' ' + sorts.size.icon : ''}
                 </th>
                 <th style={{ fontWeight: 500 }}>Actions</th>
               </tr>
