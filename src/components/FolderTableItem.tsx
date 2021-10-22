@@ -39,7 +39,7 @@ const FolderTableItem: React.FC<FolderTableItemProps> = ({
           onChange={(t) => changeCheckboxState(t.target.checked, folder.handle)}
         /> */}
       </td>
-      <td onClick={() => updatePath(folder.name)}>
+      <td onClick={() => updatePath(folder.name)} style={{ cursor: 'pointer' }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <AiFillFolder fontSize="24px" />
 

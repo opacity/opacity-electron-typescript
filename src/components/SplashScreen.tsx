@@ -10,6 +10,8 @@ import logo from '../../assets/logo2.png';
 import '../styles/splash_screen.scss';
 import { AiOutlineArrowLeft, AiOutlineArrowRight } from 'react-icons/ai';
 
+const electron = require('electron');
+
 const SplashScreen = () => {
   const history = useHistory();
   const [currentPage, setCurrentPage] = useState(0);
@@ -36,6 +38,14 @@ const SplashScreen = () => {
     'Upload files or folder by clicking the upload button, or drag & drop from your device to get started.',
   ];
 
+  let { isFirstTime } = electron.remote.getGlobal('shared');
+
+  if (!isFirstTime) {
+    onNext();
+
+    return null;
+  }
+
   return (
     <div className="splash-page">
       <h1>{headings[currentPage]}</h1>
@@ -60,7 +70,7 @@ const SplashScreen = () => {
         )}
       </div>
 
-      <div className="button-container px-2 pb-2">
+      <div className="button-container px-5 pb-2">
         <div>
           <img src={logo} width={70} />
         </div>

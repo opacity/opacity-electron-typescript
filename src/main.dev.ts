@@ -11,9 +11,11 @@
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 import path from 'path';
+import fs from 'fs';
 import { app, BrowserWindow, shell } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
+import global from './global';
 import MenuBuilder from './menu';
 export default class AppUpdater {
   constructor() {
@@ -89,6 +91,28 @@ const createWindow = async () => {
 /**
  * Add event listeners...
  */
+app.on('ready', () => {
+  const firstTimeFilePath = path.resolve(
+    app.getPath('userData'),
+    `.first-time-${app.getVersion()}`
+  );
+  let isFirstTime;
+  try {
+    fs.closeSync(fs.openSync(firstTimeFilePath, 'wx'));
+    isFirstTime = true;
+  } catch (e) {
+    if (e.code === 'EEXIST') {
+      isFirstTime = false;
+    } else {
+      // something went wrong
+      throw e;
+    }
+  }
+
+  console.log('isFirstTime', isFirstTime);
+  global.shared.isFirstTime = isFirstTime;
+  console.log('Global isFirstTime', global.shared);
+});
 
 app.on('window-all-closed', () => {
   // Respect the OSX convention of having the application in memory even

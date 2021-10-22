@@ -1,7 +1,7 @@
 {
   "name": "opacity-drive",
   "productName": "opacity-drive",
-  "version": "1.0.2",
+  "version": "0.1.2",
   "description": "Opacity Drive",
   "main": "./main.prod.js",
   "author": {
