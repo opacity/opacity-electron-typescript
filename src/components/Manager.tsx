@@ -3,7 +3,6 @@
 // const dialog = null;
 import Path from 'path';
 import streamsaver from 'streamsaver';
-import { STORAGE_NODE as storageNode, STORAGE_NODE_V1 } from '../config';
 import React, { useState, useEffect, useRef } from 'react';
 import { useHistory } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -15,6 +14,7 @@ import ButtonToolbar from 'react-bootstrap/ButtonToolbar';
 import { AiFillHome } from 'react-icons/ai';
 import Swal from 'sweetalert2';
 import Styled from 'styled-components';
+import { STORAGE_NODE as storageNode, STORAGE_NODE_V1 } from '../config';
 // import * as Utils from './../../opacity/Utils';
 import FileTableItem from './FileTableItem';
 import FolderTableItem from './FolderTableItem';
@@ -77,7 +77,7 @@ const Manager = () => {
   const { handle } = localStorage;
   const history = useHistory();
   const [folderPath, setFolderPath] = useState('/');
-  //reference needed to use folderPath in useEffect
+  // reference needed to use folderPath in useEffect
   const refFolderPath = useRef(folderPath);
   refFolderPath.current = folderPath;
   const [folders, setFolders] = useState(['home']);
@@ -156,7 +156,7 @@ const Manager = () => {
   const cryptoMiddleware = React.useMemo(
     () =>
       new WebAccountMiddleware({
-        asymmetricKey: hexToBytes(handle ? handle : ''),
+        asymmetricKey: hexToBytes(handle || ''),
       }),
     []
   );
@@ -209,12 +209,29 @@ const Manager = () => {
             ).then((processedData) => {
               setFileData(processedData);
             }),
-          ]).then(() => {
-            setLoading(false);
-          });
+          ])
+            .then(() => {
+              setLoading(false);
+            })
+            .catch((err) => {
+              console.error(err);
+              Swal.fire({
+                title: 'Error',
+                html: `Error Occured while loading items. ${err.message}`,
+                icon: 'error',
+              });
+
+              setLoading(false);
+            });
         })
         .catch((err) => {
           console.error(err);
+          Swal.fire({
+            title: 'Error',
+            html: `Error Occured while loading items. ${err.message}`,
+            icon: 'error',
+          });
+          setLoading(false);
         });
     }, 0);
   }, [folderPath, updateCurrentFolderSwitch]);
@@ -241,11 +258,11 @@ const Manager = () => {
 
   const handleCancelUpload = React.useCallback(
     async (item) => {
-      let currentID =
+      const currentID =
         currentUploader?.metadata?.size +
         currentUploader?.name +
         currentUploader?.path;
-      let cancelledId: string = '';
+      let cancelledId = '';
       console.log(currentID, item.id);
 
       if (currentID === item.id) {
@@ -257,8 +274,8 @@ const Manager = () => {
         cancelledId = item.id;
       }
       console.log('cancelledId', cancelledId);
-      let templist = fileUploadingList;
-      let index = templist.findIndex((ele) => ele.id === cancelledId);
+      const templist = fileUploadingList;
+      const index = templist.findIndex((ele) => ele.id === cancelledId);
       if (index > -1) {
         templist[index].percent = 100;
         templist[index].status = 'cancelled';
@@ -273,7 +290,7 @@ const Manager = () => {
   const handleCancelAllUpload = React.useCallback(async () => {
     if (fileUploadingList.find((item) => item.percent !== 100)) {
       await currentUploader.cancel();
-      let templist = fileUploadingList.map((item) => {
+      const templist = fileUploadingList.map((item) => {
         return item.percent !== 100
           ? {
               ...item,
@@ -296,7 +313,7 @@ const Manager = () => {
           .addFolder(
             folderPath === '/'
               ? folderPath + folderName
-              : folderPath + '/' + folderName
+              : `${folderPath}/${folderName}`
           )
           .then(() => {
             toast(`Folder ${folderName} was successfully created.`);
@@ -349,6 +366,7 @@ const Manager = () => {
               .then(() => {
                 setPageLoading(false);
                 console.log('done');
+                return true;
               })
               .catch((err) => {
                 console.log(err);
@@ -392,26 +410,26 @@ const Manager = () => {
   const uploadFile = React.useCallback(
     async (file: File, path: string) => {
       try {
-        let toastID = file.size + file.name + path;
+        const toastID = file.size + file.name + path;
 
-        let index = fileUploadingList.findIndex((ele) => ele.id === toastID);
+        const index = fileUploadingList.findIndex((ele) => ele.id === toastID);
         if (index > -1 && fileUploadingList[index].status === 'cancelled') {
           return;
         }
 
         console.log('logging on upload File 1');
 
-        var release = await fileUploadMutex.acquire();
+        const release = await fileUploadMutex.acquire();
 
         const upload = new OpaqueUpload({
           config: {
             crypto: cryptoMiddleware,
             net: netMiddleware,
-            storageNode: storageNode,
+            storageNode,
           },
           meta: file,
           name: file.name,
-          path: path,
+          path,
         });
 
         setCurrentUploader(upload);
@@ -423,8 +441,8 @@ const Manager = () => {
         upload.addEventListener(
           UploadEvents.PROGRESS,
           (e: UploadProgressEvent) => {
-            let templist = fileUploadingList;
-            let index = templist.findIndex((ele) => ele.id === toastID);
+            const templist = fileUploadingList;
+            const index = templist.findIndex((ele) => ele.id === toastID);
             if (index > -1) {
               templist[index].percent = e.detail.progress * 100;
               templist[index].status = 'uploading';
@@ -453,8 +471,8 @@ const Manager = () => {
           await upload.finish();
 
           console.log('logging4: upload finish');
-          let templistdone = fileUploadingList;
-          let index = templistdone.findIndex((ele) => ele.id === toastID);
+          const templistdone = fileUploadingList;
+          const index = templistdone.findIndex((ele) => ele.id === toastID);
 
           if (index > -1) {
             templistdone[index].percent = 100;
@@ -535,7 +553,7 @@ const Manager = () => {
           ? folderPath + relativePath(file.webkitRelativePath)
           : folderPath
         : file.webkitRelativePath
-        ? folderPath + '/' + relativePath(file.webkitRelativePath)
+        ? `${folderPath}/${relativePath(file.webkitRelativePath)}`
         : folderPath;
     },
     [folderPath]
@@ -543,11 +561,11 @@ const Manager = () => {
 
   const selectFiles = React.useCallback(
     async (files) => {
-      let templist = fileUploadingList;
+      const templist = fileUploadingList;
 
       files.forEach((file: File) => {
         const path = pathGenerator(file);
-        let toastID = file.size + file.name + path;
+        const toastID = file.size + file.name + path;
         templist.push({
           id: toastID,
           fileName: file.name,
@@ -577,11 +595,11 @@ const Manager = () => {
     setPageLoading(true);
     const selectedFiles = fileData.filter((file) => file.checked);
     for (const file of selectedFiles) {
-      await fileDownload(file, selectedFiles.length > 1 ? true : false);
+      await fileDownload(file, selectedFiles.length > 1);
     }
   };
 
-  /******  Start Logic for deletion   ******/
+  /** ****  Start Logic for deletion   ***** */
   const deleteFile = React.useCallback(
     async (file: FileMetadata) => {
       // isFileManaging();
@@ -592,7 +610,7 @@ const Manager = () => {
           config: {
             net: netMiddleware,
             crypto: cryptoMiddleware,
-            storageNode: storageNode,
+            storageNode,
           },
         });
         bindFileSystemObjectToAccountSystem(accountSystem, fso);
@@ -617,7 +635,7 @@ const Manager = () => {
           config: {
             net: netMiddleware,
             crypto: cryptoMiddleware,
-            storageNode: storageNode,
+            storageNode,
           },
         });
         bindFileSystemObjectToAccountSystem(accountSystem, fso);
@@ -715,7 +733,8 @@ const Manager = () => {
 
   const handleDeleteItem = React.useCallback(
     async (item: FolderFileEntry | FoldersIndexEntry, isFile: boolean) => {
-      let fileToDelete, folderToDelete;
+      let fileToDelete;
+      let folderToDelete;
       if (isFile) fileToDelete = item as FolderFileEntry;
       else folderToDelete = item as FoldersIndexEntry;
       // setShowDeleteModal(true);
@@ -820,7 +839,7 @@ const Manager = () => {
 
     const newPath = folders.slice(0, buttonIndex + 1);
     setFolders(newPath);
-    let traversedPath = [...newPath];
+    const traversedPath = [...newPath];
     traversedPath[0] = '/';
     console.log(traversedPath);
     setFolderPath(Path.join(...traversedPath));
@@ -830,7 +849,7 @@ const Manager = () => {
     fileDownload(item, false);
   }
 
-  async function renameFunc(item: any, isFolder: Boolean) {
+  async function renameFunc(item: any, isFolder: boolean) {
     const { value: newName } = await Swal.fire({
       title: 'Enter the a new name',
       input: 'text',
@@ -848,6 +867,21 @@ const Manager = () => {
 
     if (newName) {
       console.log('Path ----', item.path, item.location);
+      const originalExt = item.name.split('.').pop();
+      const newExt = newName.split('.').pop();
+      if (originalExt !== newExt) {
+        const { value: result } = await Swal.fire({
+          title: 'Warning',
+          icon: 'warning',
+          html: `You're changing the file extension from ${originalExt} to ${newExt}. Are you really want to proceed?`,
+          showCancelButton: true,
+          confirmButtonColor: '#3085d6',
+          cancelButtonColor: '#d33',
+          confirmButtonText: 'Rename',
+        });
+
+        if (!result) return;
+      }
 
       handleChangeRename(
         newName,
@@ -865,14 +899,14 @@ const Manager = () => {
 
     newFolderData.sort(function (folderA, folderB) {
       return sorts.name.ascending
-        ? ('' + folderA.name).localeCompare(folderB.name)
-        : ('' + folderB.name).localeCompare(folderA.name);
+        ? `${folderA.name}`.localeCompare(folderB.name)
+        : `${folderB.name}`.localeCompare(folderA.name);
     });
 
     newFileData.sort(function (fileA, fileB) {
       return sorts.name.ascending
-        ? ('' + fileA.name).localeCompare(fileB.name)
-        : ('' + fileB.name).localeCompare(fileA.name);
+        ? `${fileA.name}`.localeCompare(fileB.name)
+        : `${fileB.name}`.localeCompare(fileA.name);
     });
 
     sorts.name.ascending = !sorts.name.ascending;
@@ -1005,7 +1039,7 @@ const Manager = () => {
               addFolder={addNewFolder}
               deleteFunc={() => handleDelete(null, null)}
               changeAllCheckboxState={changeAllCheckboxState}
-            ></ActionButtons>
+            />
           </ButtonToolbar>
           <Table size="sm" className="mt-2">
             <thead>
@@ -1019,15 +1053,15 @@ const Manager = () => {
                 {/* <th></th> */}
                 <th onClick={sortName}>
                   Name
-                  {sorts.name.show ? ' ' + sorts.name.icon : ''}
+                  {sorts.name.show ? ` ${sorts.name.icon}` : ''}
                 </th>
                 <th onClick={sortCreated}>
                   Created
-                  {sorts.createdDate.show ? ' ' + sorts.createdDate.icon : ''}
+                  {sorts.createdDate.show ? ` ${sorts.createdDate.icon}` : ''}
                 </th>
                 <th onClick={sortSize}>
                   Size
-                  {sorts.size.show ? ' ' + sorts.size.icon : ''}
+                  {sorts.size.show ? ` ${sorts.size.icon}` : ''}
                 </th>
                 <th style={{ fontWeight: 500 }}>Actions</th>
               </tr>

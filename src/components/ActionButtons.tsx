@@ -1,5 +1,6 @@
 import { ipcRenderer } from 'electron';
 import React, { useState, useRef, ReactNode } from 'react';
+import { OverlayTrigger, Tooltip } from 'react-bootstrap';
 import Button from 'react-bootstrap/Button';
 import ButtonGroup from 'react-bootstrap/ButtonGroup';
 import {
@@ -250,16 +251,28 @@ const ActionButtons = ({
         </>
       )}
 
-      <Button
-        onClick={() => shell.openExternal('https://help.opacity.io')}
-        className="ms-3"
+      <OverlayTrigger
+        key="bottom-help-center"
+        placement="bottom"
+        overlay={<Tooltip id="help-center">Help Center</Tooltip>}
       >
-        <AiFillQuestionCircle size={24} />
-      </Button>
+        <Button
+          onClick={() => shell.openExternal('https://help.opacity.io')}
+          className="ms-3"
+        >
+          <AiFillQuestionCircle size={24} />
+        </Button>
+      </OverlayTrigger>
 
-      <Button onClick={() => handleLogout()} className="">
-        <FiLogOut size={24} />
-      </Button>
+      <OverlayTrigger
+        key="bottom-sign-out"
+        placement="bottom"
+        overlay={<Tooltip id="sign-out">Sign Out</Tooltip>}
+      >
+        <Button onClick={() => handleLogout()} className="">
+          <FiLogOut size={24} />
+        </Button>
+      </OverlayTrigger>
     </ButtonGroup>
   );
 };

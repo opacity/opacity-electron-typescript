@@ -3,6 +3,11 @@ module.exports = {
   rules: {
     // A temporary hack related to IDE not resolving correct package.json
     'import/no-extraneous-dependencies': 'off',
+    'no-nested-ternary': 'off',
+    'no-restricted-syntax': 'off',
+    'no-await-in-loop': 'off',
+    'promise/always-return': 'off',
+    'promise/no-nesting': 'off',
   },
   parserOptions: {
     ecmaVersion: 2020,

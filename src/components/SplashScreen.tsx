@@ -72,7 +72,7 @@ const SplashScreen = () => {
 
       <div className="button-container px-5 pb-2">
         <div>
-          <img src={logo} width={70} />
+          <img src={logo} width={70} className="mb-4" />
         </div>
 
         <div className="d-flex align-items-center">
