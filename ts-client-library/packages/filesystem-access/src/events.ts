@@ -67,6 +67,8 @@ export enum UploadEvents {
 	START = "start",
 	FINISH = "finish",
 	PROGRESS = "progress",
+	ERROR = "error",
+	CANCEL = "cancel",
 }
 
 type UploadMetadataEventData = { metadata: FileMeta }
@@ -91,6 +93,18 @@ type UploadProgressEventData = { progress: number }
 export class UploadProgressEvent extends CustomEvent<UploadProgressEventData> {
 	constructor (data: UploadProgressEventData) {
 		super(UploadEvents.PROGRESS, { detail: data })
+	}
+}
+type UploadErrorEventData = { start: number; end: number; }
+export class UploadErrorEvent extends CustomEvent<UploadErrorEventData> {
+	constructor (data: UploadErrorEventData) {
+		super(UploadEvents.ERROR, { detail: data })
+	}
+}
+type UploadCancelEventData = { start: number; end: number; }
+export class UploadCancelEvent extends CustomEvent<UploadCancelEventData> {
+	constructor (data: UploadCancelEventData) {
+		super(UploadEvents.CANCEL, { detail: data })
 	}
 }
 
@@ -119,6 +133,16 @@ export interface IUploadEvents {
 	addEventListener(
 		type: UploadEvents.PROGRESS,
 		listener: EventListenerOrEventListenerObject<UploadProgressEvent> | null,
+		options?: boolean | AddEventListenerOptions | undefined,
+	): void
+	addEventListener(
+		type: UploadEvents.ERROR,
+		listener: EventListenerOrEventListenerObject<UploadErrorEvent> | null,
+		options?: boolean | AddEventListenerOptions | undefined,
+	): void
+	addEventListener(
+		type: UploadEvents.CANCEL,
+		listener: EventListenerOrEventListenerObject<UploadCancelEvent> | null,
 		options?: boolean | AddEventListenerOptions | undefined,
 	): void
 }

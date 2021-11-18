@@ -6,19 +6,22 @@ import streamsaver from 'streamsaver';
 import React, { useState, useEffect, useRef } from 'react';
 import { useHistory } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import Container from 'react-bootstrap/Container';
-import Table from 'react-bootstrap/Table';
-import Button from 'react-bootstrap/Button';
-import ButtonGroup from 'react-bootstrap/ButtonGroup';
-import ButtonToolbar from 'react-bootstrap/ButtonToolbar';
+import { Container, Table, ButtonToolbar, Spinner } from 'react-bootstrap';
 import { AiFillHome } from 'react-icons/ai';
 import Swal from 'sweetalert2';
 import Styled from 'styled-components';
+import { saveAs } from 'file-saver';
+import * as fflate from 'fflate';
+import { Mutex } from 'async-mutex';
+import { useDropzone } from 'react-dropzone';
 import { STORAGE_NODE as storageNode, STORAGE_NODE_V1 } from '../config';
 // import * as Utils from './../../opacity/Utils';
 import FileTableItem from './FileTableItem';
 import FolderTableItem from './FolderTableItem';
 import ActionButtons from './ActionButtons';
+import DeletingProgress from './DeletingProgress';
+import UploadProgress from './UploadProgress';
+
 import {
   WebAccountMiddleware,
   WebNetworkMiddleware,
@@ -47,35 +50,58 @@ import {
   polyfillReadableStreamIfNeeded,
   polyfillWritableStreamIfNeeded,
 } from '../../ts-client-library/packages/util/src/streams';
-import { saveAs } from 'file-saver';
-import * as fflate from 'fflate';
-import { Mutex } from 'async-mutex';
 import {
+  UploadCancelEvent,
+  UploadErrorEvent,
   UploadEvents,
   UploadProgressEvent,
 } from '../../ts-client-library/packages/filesystem-access/src/events';
-import { isPathChild } from '../../ts-client-library/packages/util/src/path';
+// import { isPathChild } from '../../ts-client-library/packages/util/src/path';
 import { FileSystemObject } from '../../ts-client-library/packages/filesystem-access/src/filesystem-object';
-import { useDropzone } from 'react-dropzone';
-
-import UploadProgress from './UploadProgress';
 
 import { ProgressItem } from '../interfaces';
 
 import '../styles/manager.scss';
-import DeletingProgress from './DeletingProgress';
-import { Spinner } from 'react-bootstrap';
 
 const Checkbox = Styled.input.attrs({
   type: 'checkbox',
 })``;
 
 let fileUploadingList: ProgressItem[] = [];
+let loadingFlagCnt = 0;
+let uploadingFileList = [];
+const THREAD_COUNT = 10;
+let curThreadNum = 0;
+let uploaderThread = [];
 
 const Manager = () => {
-  const { dialog } = require('electron').remote;
+  //const { dialog } = require('electron').remote;
   const { handle } = localStorage;
-  const history = useHistory();
+  const [isManaging, setIsManaging] = React.useState(false);
+  //const history = useHistory();
+
+  const cryptoMiddleware = React.useMemo(
+    () =>
+      new WebAccountMiddleware({
+        asymmetricKey: hexToBytes(handle || ''),
+      }),
+    []
+  );
+  const netMiddleware = React.useMemo(() => new WebNetworkMiddleware(), []);
+  const metadataAccess = React.useMemo(
+    () =>
+      new MetadataAccess({
+        net: netMiddleware,
+        crypto: cryptoMiddleware,
+        metadataNode: storageNode,
+      }),
+    [netMiddleware, cryptoMiddleware, storageNode]
+  );
+  const accountSystem = React.useMemo(
+    () => new AccountSystem({ metadataAccess }),
+    [metadataAccess]
+  );
+
   const [folderPath, setFolderPath] = useState('/');
   // reference needed to use folderPath in useEffect
   const refFolderPath = useRef(folderPath);
@@ -90,19 +116,6 @@ const Manager = () => {
   // For Upload Process Tracking
   const [uploadingList, setUploadingList] = useState<ProgressItem[]>([]);
   const currentUploadingList = React.useRef<ProgressItem[]>([]);
-
-  const onDrop = React.useCallback(
-    (files) => {
-      selectFiles(files);
-    },
-    [folderPath]
-  );
-
-  const { isDragActive, getRootProps } = useDropzone({
-    onDrop,
-    minSize: 0,
-    multiple: true,
-  });
 
   React.useEffect(() => {
     currentUploadingList.current = uploadingList;
@@ -129,6 +142,7 @@ const Manager = () => {
       up: '▲',
     },
   };
+
   const [sorts, setSorts] = useState(JSON.parse(JSON.stringify(defaultSorts)));
   const [selectAllCheckbox, setSelectAllCheckbox] = useState(false);
   const [massButtons, setMassButtons] = useState(false);
@@ -153,27 +167,14 @@ const Manager = () => {
     (path: string) => path.substr(0, path.lastIndexOf('/')),
     []
   );
-  const cryptoMiddleware = React.useMemo(
-    () =>
-      new WebAccountMiddleware({
-        asymmetricKey: hexToBytes(handle || ''),
-      }),
-    []
-  );
-  const netMiddleware = React.useMemo(() => new WebNetworkMiddleware(), []);
-  const metadataAccess = React.useMemo(
-    () =>
-      new MetadataAccess({
-        net: netMiddleware,
-        crypto: cryptoMiddleware,
-        metadataNode: storageNode,
-      }),
-    [netMiddleware, cryptoMiddleware, storageNode]
-  );
-  const accountSystem = React.useMemo(
-    () => new AccountSystem({ metadataAccess }),
-    [metadataAccess]
-  );
+
+  const isFileManaging = () => {
+    setIsManaging(true);
+  };
+
+  const OnfinishFileManaging = () => {
+    setIsManaging(false);
+  };
 
   useEffect(() => {
     setTimeout(async () => {
@@ -407,6 +408,7 @@ const Manager = () => {
 
   const fileUploadMutex = React.useMemo(() => new Mutex(), []);
 
+  // Upload file stream
   const uploadFile = React.useCallback(
     async (file: File, path: string) => {
       try {
@@ -414,12 +416,23 @@ const Manager = () => {
 
         const index = fileUploadingList.findIndex((ele) => ele.id === toastID);
         if (index > -1 && fileUploadingList[index].status === 'cancelled') {
+          const fileIndex = uploadingFileList.findIndex(
+            (item) =>
+              toastID ===
+              item.size + file.name + pathGenerator(item, folderPath)
+          );
+          fileIndex !== -1 && uploadingFileList.splice(fileIndex, 1);
+          if (curThreadNum < THREAD_COUNT && uploadingFileList.length > 0) {
+            const nextFile = uploadingFileList[0];
+            const nextFilePath = pathGenerator(nextFile, folderPath);
+            uploadFile(nextFile, nextFilePath);
+          }
           return;
         }
 
         console.log('logging on upload File 1');
 
-        const release = await fileUploadMutex.acquire();
+        // const release = await fileUploadMutex.acquire();
 
         const upload = new OpaqueUpload({
           config: {
@@ -431,16 +444,28 @@ const Manager = () => {
           name: file.name,
           path,
         });
+        uploaderThread.push(upload);
+        curThreadNum++;
+        //setCurrentUploader(upload);
+        console.log('curThreadNum is increasing', curThreadNum);
 
-        setCurrentUploader(upload);
-
-        console.log('logging 2');
+        const fileIndex = uploadingFileList.findIndex(
+          (item) =>
+            toastID === item.size + file.name + pathGenerator(item, folderPath)
+        );
+        fileIndex !== -1 && uploadingFileList.splice(fileIndex, 1);
+        if (curThreadNum < THREAD_COUNT && uploadingFileList.length > 0) {
+          const nextFile = uploadingFileList[0];
+          const nextFilePath = pathGenerator(nextFile, folderPath);
+          uploadFile(nextFile, nextFilePath);
+        }
+        //console.log('logging 2');
         // side effects
         bindUploadToAccountSystem(accountSystem, upload);
 
         upload.addEventListener(
           UploadEvents.PROGRESS,
-          (e: UploadProgressEvent) => {
+          (e: UploadProgressEventß) => {
             const templist = fileUploadingList;
             const index = templist.findIndex((ele) => ele.id === toastID);
             if (index > -1) {
@@ -452,6 +477,32 @@ const Manager = () => {
             }
           }
         );
+
+        upload.addEventListener(UploadEvents.ERROR, (e: UploadErrorEvent) => {
+          toast.error('Failed to upload file');
+
+          let templist = fileUploadingList;
+          let index = templist.findIndex((ele) => ele.id === toastID);
+          if (index > -1) {
+            templist[index].percent = 100;
+            templist[index].status = 'cancelled';
+            fileUploadingList = templist;
+            setUploadingList(templist);
+            setProcessChange({});
+          }
+        });
+
+        upload.addEventListener(UploadEvents.CANCEL, (e: UploadCancelEvent) => {
+          let templist = fileUploadingList;
+          let index = templist.findIndex((ele) => ele.id === toastID);
+          if (index > -1) {
+            templist[index].percent = 100;
+            templist[index].status = 'cancelled';
+            fileUploadingList = templist;
+            setUploadingList(templist);
+            setProcessChange({});
+          }
+        });
 
         const fileStream = polyfillReadableStreamIfNeeded<Uint8Array>(
           file.stream()
@@ -483,32 +534,67 @@ const Manager = () => {
             setProcessChange({});
           }
         } finally {
-          console.log('Finally');
-          release();
-          console.log('released');
+          //console.log('Finally');
+          //release();
+          //console.log('released');
 
-          if (path === folderPath) {
-            setPageLoading(true);
-
-            const folderMeta = await accountSystem.getFolderMetadataByPath(
-              folderPath
-            );
-
-            Promise.all(
-              folderMeta.files.map((file) =>
-                accountSystem._getFileMetadata(file.location).then((f) => {
-                  return f;
-                })
-              )
-            ).then((processedData) => {
-              setFileData(processedData);
-              setPageLoading(false);
-            });
+          curThreadNum--;
+          const threadIndex = uploaderThread.findIndex(
+            (item) => toastID === item.metadata?.size + file.name + item.path
+          );
+          if (threadIndex !== -1) {
+            delete uploaderThread[threadIndex];
+            uploaderThread.splice(threadIndex, 1);
           }
+          if (curThreadNum < THREAD_COUNT && uploadingFileList.length > 0) {
+            const nextFile = uploadingFileList[0];
+            const nextFilePath = pathGenerator(nextFile, folderPath);
+            uploadFile(nextFile, nextFilePath);
+          }
+
+          if (curThreadNum === 0 && uploadingFileList.length === 0) {
+            setUpdateCurrentFolderSwitch(!updateCurrentFolderSwitch);
+          }
+          // if (path === folderPath) {
+          //   setPageLoading(true);
+
+          //   const folderMeta = await accountSystem.getFolderMetadataByPath(
+          //     folderPath
+          //   );
+
+          //   Promise.all(
+          //     folderMeta.files.map((file) =>
+          //       accountSystem._getFileMetadata(file.location).then((f) => {
+          //         return f;
+          //       })
+          //     )
+          //   ).then((processedData) => {
+          //     setFileData(processedData);
+          //     setPageLoading(false);
+          //   });
+          // }
         }
       } catch (e) {
-        console.log('catching error');
+        //console.log('catching error');
         // console.error(e);
+        curThreadNum--;
+
+        const threadIndex = uploaderThread.findIndex(
+          (item) => toastID === item.metadata?.size + file.name + item.path
+        );
+        if (threadIndex !== -1) {
+          delete uploaderThread[threadIndex];
+          uploaderThread.splice(threadIndex, 1);
+        }
+        if (curThreadNum < THREAD_COUNT && uploadingFileList.length > 0) {
+          const nextFile = uploadingFileList[0];
+          const nextFilePath = pathGenerator(nextFile, currentPath);
+          uploadFile(nextFile, nextFilePath);
+        }
+
+        if (curThreadNum === 0 && uploadingFileList.length === 0) {
+          setUpdateCurrentFolderSwitch(!updateCurrentFolderSwitch);
+        }
       }
     },
     [
@@ -544,48 +630,57 @@ const Manager = () => {
     [accountSystem, updateCurrentFolderSwitch]
   );
 
-  const pathGenerator = React.useCallback(
-    (file) => {
-      return file.name === (file.path || file.webkitRelativePath || file.name)
-        ? folderPath
-        : folderPath === '/'
-        ? file.webkitRelativePath
-          ? folderPath + relativePath(file.webkitRelativePath)
-          : folderPath
-        : file.webkitRelativePath
-        ? `${folderPath}/${relativePath(file.webkitRelativePath)}`
-        : folderPath;
-    },
-    [folderPath]
-  );
+  const pathGenerator = React.useCallback((file, curPath) => {
+    return file.name === (file.path || file.webkitRelativePath || file.name)
+      ? curPath
+      : curPath === '/'
+      ? file.webkitRelativePath
+        ? curPath + relativePath(file.webkitRelativePath)
+        : curPath
+      : file.webkitRelativePath
+      ? `${curPath}/${relativePath(file.webkitRelativePath)}`
+      : curPath;
+  }, []);
 
   const selectFiles = React.useCallback(
     async (files) => {
-      const templist = fileUploadingList;
+      let addedFileList = [];
+
+      //isFileManaging();
 
       files.forEach((file: File) => {
-        const path = pathGenerator(file);
+        const path = pathGenerator(file, folderPath);
         const toastID = file.size + file.name + path;
-        templist.push({
-          id: toastID,
-          fileName: file.name,
-          percent: 0,
-          status: 'active',
-        });
+        if (!fileUploadingList.find((item) => item.id === toastID)) {
+          addedFileList.push({
+            id: toastID,
+            fileName: file.name,
+            percent: 0,
+            status: 'active',
+          });
+          uploadingFileList.push(file);
+        }
       });
 
-      fileUploadingList = templist;
-      setUploadingList(templist);
-      setProcessChange({});
-
-      for (const file of files) {
-        const path = pathGenerator(file);
-        // console.log(path);
-        await uploadFile(file, path);
+      if (curThreadNum === 0) {
+        const orderChanged = addedFileList.slice(
+          0,
+          THREAD_COUNT - curThreadNum
+        );
+        orderChanged.reverse();
+        addedFileList.splice(0, 10, ...orderChanged);
       }
 
-      setUpdateCurrentFolderSwitch(!updateCurrentFolderSwitch);
-      // OnfinishFileManaging();
+      fileUploadingList.push(...addedFileList);
+      setUploadingList(fileUploadingList);
+      setProcessChange({});
+
+      if (curThreadNum === 0 || curThreadNum < THREAD_COUNT) {
+        const file = uploadingFileList[0];
+        const path = pathGenerator(file, folderPath);
+        uploadFile(file, path);
+      }
+      //OnfinishFileManaging();
     },
     [folderPath, uploadFile]
   );
@@ -787,6 +882,19 @@ const Manager = () => {
     }
     changeAllCheckboxState(false);
   };
+
+  const onDrop = React.useCallback(
+    (files) => {
+      selectFiles(files);
+    },
+    [folderPath]
+  );
+
+  const { isDragActive, getRootProps } = useDropzone({
+    onDrop,
+    minSize: 0,
+    multiple: true,
+  });
 
   function changeAllCheckboxState(checked: boolean) {
     const copyMetadata = [...fileData];

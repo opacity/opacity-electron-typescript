@@ -32,9 +32,19 @@ type MetadataAddPayload = {
 	isPublic: boolean
 }
 
+type MetadataAddMultiPayload = {
+	metadatas: MetadataAddPayload[]
+}
+
 type MetadataAddRes = {
 	MetadataV2Key: string
 	MetadataV2: string
+	ExpirationDate: number
+}
+
+type MetadataMultiAddRes = {
+	Metadatas: MetadataAddRes[]
+	FailedMetadatas: string[]
 	ExpirationDate: number
 }
 
@@ -231,7 +241,9 @@ export class MetadataAccess {
 			false,
 			undefined,
 			true,
-		)
+		).catch(() => {
+			throw new Error("Error metadata index add");
+		})
 	}
 
 	async _metadataIndexRemove (priv: Uint8Array) {
@@ -260,7 +272,9 @@ export class MetadataAccess {
 			false,
 			undefined,
 			true,
-		)
+		).catch(() => {
+			throw new Error("Error metadata index remove");
+		})
 	}
 
 	async _multiMetadataIndexRemove (privs: Uint8Array[]) {
@@ -278,21 +292,27 @@ export class MetadataAccess {
 		})
 		
 		// long set
-		// await this._change<MetadataIndex>(
-		// 	metaIndexPriv,
-		// 	undefined,
-		// 	(doc) => {
-		// 		if (privString in doc) {
-		// 			return
-		// 		}
+		await this._change<MetadataIndex>(
+			metaIndexPriv,
+			undefined,
+			(doc) => {
+				privs.forEach(priv => {
+					const privString = bytesToB64URL(priv)
 
-		// 		delete doc.privs[privString]
-		// 		delete doc.encryptKeys[privString]
-		// 	},
-		// 	false,
-		// 	undefined,
-		// 	true,
-		// )
+					if (privString in doc) {
+						return
+					}
+	
+					delete doc.privs[privString]
+					delete doc.encryptKeys[privString]
+				})
+			},
+			false,
+			undefined,
+			true,
+		).catch(() => {
+			throw new Error("Error remove metadata index");
+		})
 	}
 
 	async change<T = unknown> (
@@ -306,9 +326,27 @@ export class MetadataAccess {
 		path = cleanPath(path)
 
 		const priv = await this.config.crypto.derive(undefined, path)
-		await this._metadataIndexAdd(priv, undefined)
 
 		return await this._change<T>(priv, description, fn, false, undefined, markCacheDirty)
+	}
+
+	async multiChange<T = unknown> (
+		path1: string,
+		path2: string,
+		description: string,
+		fn1: Automerge.ChangeFn<Automerge.Proxy<T>>,
+		fn2: Automerge.ChangeFn<Automerge.Proxy<T>>,
+		markCacheDirty = false,
+	): Promise<Automerge.Doc<T>> {
+		// console.log("change(", path, description, fn, ")")
+
+		path1 = cleanPath(path1)
+		path2 = cleanPath(path2)
+
+		const priv1 = await this.config.crypto.derive(undefined, path1)
+		const priv2 = await this.config.crypto.derive(undefined, path2)
+
+		return await this._multiChange<T>(priv1, priv2, description, fn1, fn2, false, undefined, markCacheDirty)
 	}
 
 	async changePublic<T = unknown> (
@@ -320,7 +358,9 @@ export class MetadataAccess {
 	): Promise<Automerge.Doc<T>> {
 		// console.log("changePublic(", priv, description, fn, encryptKey, ")")
 
-		await this._metadataIndexAdd(priv, encryptKey)
+		await this._metadataIndexAdd(priv, encryptKey).catch(() => {
+			throw new Error("Error metadata index add");
+		})
 
 		return await this._change<T>(priv, description, fn, true, encryptKey, markCacheDirty)
 	}
@@ -371,12 +411,18 @@ export class MetadataAccess {
 			},
 		})
 
-		await this.config.net.POST<MetadataAddRes>(
+		const res = await this.config.net.POST<MetadataAddRes>(
 			this.config.metadataNode + "/api/v2/metadata/add",
 			undefined,
 			JSON.stringify(payload),
 			(res) => new Response(res).json(),
-		)
+		).catch(() => {
+			throw new Error("Error add metadata");
+		})
+
+		if(res.status !== 200) {
+			throw new Error("Error add metadata");
+		}
 
 		this.dags[pubString] = dag
 		this.cache[pubString] = {
@@ -391,6 +437,122 @@ export class MetadataAccess {
 		}, 60 * 1000)
 
 		return newDoc
+	}
+
+	async _multiChange<T = unknown> (
+		priv1: Uint8Array,
+		priv2: Uint8Array,
+		description: string | undefined,
+		fn1: Automerge.ChangeFn<Automerge.Proxy<T>>,
+		fn2: Automerge.ChangeFn<Automerge.Proxy<T>>,
+		isPublic: boolean,
+		encryptKey?: Uint8Array,
+		markCacheDirty = false,
+	): Promise<Automerge.Doc<T>> {
+		// console.log("_change(", priv, description, fn, isPublic, encryptKey, ")")
+
+		const pub1 = await this.config.crypto.getPublicKey(priv1)
+		const pubString1 = bytesToB64URL(pub1)
+
+		const pub2 = await this.config.crypto.getPublicKey(priv2)
+		const pubString2 = bytesToB64URL(pub2)
+
+		// sync
+		const curDoc1 = (await this._get<T>(priv1, undefined, markCacheDirty)) || Automerge.init<T>()
+		this.dags[pubString1] = this.dags[pubString1] || new DAG()
+		const dag1 = this.dags[pubString1]
+
+		const curDoc2 = (await this._get<T>(priv2, undefined, markCacheDirty)) || Automerge.init<T>()
+		this.dags[pubString2] = this.dags[pubString2] || new DAG()
+		const dag2 = this.dags[pubString2]
+
+		// change
+		const newDoc1 = description ? Automerge.change(curDoc1, description, fn1) : Automerge.change(curDoc1, fn1)
+		const newDoc2 = description ? Automerge.change(curDoc2, description, fn2) : Automerge.change(curDoc2, fn2)
+
+		// commit
+
+		const changes1 = Automerge.getChanges(curDoc1, newDoc1)
+		const changes2 = Automerge.getChanges(curDoc2, newDoc2)
+
+		if (!changes1.length || !changes2.length) {
+			return curDoc1 || curDoc2
+		}
+
+		const encrypted1 = await this.config.crypto.encrypt(encryptKey || sha256(priv1), packChanges(changes1))
+		const v1 = new DAGVertex(encrypted1)
+		dag1.addReduced(v1)
+
+		const edges1 = dag1.parentEdges(v1.id)
+
+		const encrypted2 = await this.config.crypto.encrypt(encryptKey || sha256(priv2), packChanges(changes2))
+		const v2 = new DAGVertex(encrypted2)
+		dag2.addReduced(v2)
+
+		const edges2 = dag2.parentEdges(v2.id)
+
+
+		const payload = await getPayload<MetadataAddMultiPayload>({
+			crypto: this.config.crypto,
+			payload: {
+				metadatas: [
+					{
+						isPublic,
+						metadataV2Edges: edges1.map((edge1) => bytesToB64URL(edge1.binary)),
+						metadataV2Key: pubString1,
+						metadataV2Sig: bytesToB64URL(await this.config.crypto.sign(priv1, await dag1.digest(v1.id, sha256))),
+						metadataV2Vertex: bytesToB64URL(v1.binary),
+					},
+					{
+						isPublic,
+						metadataV2Edges: edges2.map((edge2) => bytesToB64URL(edge2.binary)),
+						metadataV2Key: pubString2,
+						metadataV2Sig: bytesToB64URL(await this.config.crypto.sign(priv2, await dag2.digest(v2.id, sha256))),
+						metadataV2Vertex: bytesToB64URL(v2.binary),
+					}
+				]
+			},
+		})
+
+		const uploadStatus = await this.config.net.POST(
+			this.config.metadataNode + "/api/v2/metadata/add-multiple",
+			undefined,
+			JSON.stringify(payload),
+			(res) => new Response(res).json(),
+		).catch(() => {
+			throw new Error("Error add metadata on finish upload catch");
+		})
+
+		if(uploadStatus.status !== 200) {
+			throw new Error("Error add metadata on finish upload status");
+		} else {
+			if(Object.keys(uploadStatus.data?.failedMetadatas).length !== 0) {
+				throw new Error("Error add metadata on finish upload with failed metadatas");
+			}
+		}
+
+		this.dags[pubString1] = dag1
+		this.cache[pubString1] = {
+			lastAccess: Date.now(),
+			dirty: false,
+			doc: newDoc1,
+		}
+
+		this.dags[pubString2] = dag2
+		this.cache[pubString2] = {
+			lastAccess: Date.now(),
+			dirty: false,
+			doc: newDoc2,
+		}
+
+		setTimeout(() => {
+			delete this.dags[pubString1]
+			delete this.cache[pubString1]
+			delete this.dags[pubString2]
+			delete this.cache[pubString2]
+		}, 60 * 1000)
+
+		return newDoc1
 	}
 
 	async get<T> (path: string, markCacheDirty = false): Promise<Automerge.Doc<T> | undefined> {
@@ -437,7 +599,7 @@ export class MetadataAccess {
 				(res) => new Response(res).json(),
 			)
 
-			if (((res.data as unknown) as string) == "Key not found") {
+			if (res.status !== 200) {
 				return undefined
 			}
 
@@ -555,8 +717,9 @@ export class MetadataAccess {
 
 		const priv = await this.config.crypto.derive(undefined, path)
 
-		await this._delete(priv)
-		await this._metadataIndexRemove(priv)
+		await this._delete(priv).catch(() => {
+			throw new Error("Error delete file");
+		})
 	}
 
 	async multiDelete (paths: string[]): Promise<void> {
@@ -570,15 +733,23 @@ export class MetadataAccess {
 			privs.push(priv)
 		}
 		
-		await this._multiDelete(privs)
-		await this._multiMetadataIndexRemove(privs)
+		await this._multiDelete(privs).catch(() => {
+			throw new Error("Error multiple delete");
+		})
+		// await this._multiMetadataIndexRemove(privs).catch(() => {
+		// 	throw new Error("Error multiple remove metadata index");
+		// })
 	}
 
 	async deletePublic (priv: Uint8Array): Promise<void> {
 		// console.log("deletePublic(", priv, ")")
 
-		await this._delete(priv)
-		await this._metadataIndexRemove(priv)
+		await this._delete(priv).catch(() => {
+			throw new Error("Error delete file");
+		})
+		await this._metadataIndexRemove(priv).catch(() => {
+			throw new Error("Error remove metadata index");
+		})
 	}
 
 	async _delete (priv: Uint8Array): Promise<void> {
@@ -594,13 +765,19 @@ export class MetadataAccess {
 			},
 		})
 
-		await this.config.net.POST<MetadataDeleteRes>(
+		const res = await this.config.net.POST<MetadataDeleteRes>(
 			this.config.metadataNode + "/api/v2/metadata/delete",
 			undefined,
 			JSON.stringify(payload),
 			(res) => new Response(res).json(),
-		)
+		).catch(() => {
+			throw new Error("Error delete file");
+		})
 
+		if(res.status !== 200) {
+			throw new Error("Error delete file");
+		}
+		
 		delete this.dags[pubString]
 		delete this.cache[pubString]
 	}
@@ -623,12 +800,18 @@ export class MetadataAccess {
 			},
 		})
 
-		await this.config.net.POST<MetadataDeleteRes>(
+		const res = await this.config.net.POST<MetadataDeleteRes>(
 			this.config.metadataNode + "/api/v2/metadata/delete-multiple",
 			undefined,
 			JSON.stringify(payload),
 			(res) => new Response(res).json(),
-		)
+		).catch(() => {
+			throw new Error("Error delete file");
+		})
+
+		if(res.status !== 200) {
+			throw new Error("Error delete file");
+		}
 
 		pubStrings.forEach(pubString => {
 			delete this.dags[pubString]
