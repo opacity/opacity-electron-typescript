@@ -168,7 +168,11 @@ const ActionButtons = ({
     });
 
     if (folderName) {
-      Swal.fire('', `Created folder: ${folderName}`, 'success');
+      Swal.fire(
+        '',
+        `Folder ${folderName} was successfully created.`,
+        'success'
+      );
       addFolder(folderName);
     }
   }

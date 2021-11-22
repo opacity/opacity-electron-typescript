@@ -62,6 +62,7 @@ import { FileSystemObject } from '../../ts-client-library/packages/filesystem-ac
 import { ProgressItem } from '../interfaces';
 
 import '../styles/manager.scss';
+import emptyImage from '../../assets/splash4.png';
 
 const Checkbox = Styled.input.attrs({
   type: 'checkbox',
@@ -116,7 +117,13 @@ const Manager = () => {
   // For Upload Process Tracking
   const [uploadingList, setUploadingList] = useState<ProgressItem[]>([]);
   const currentUploadingList = React.useRef<ProgressItem[]>([]);
-
+  // For delete processs Tracking
+  const [fileToDelete, setFileToDelete] = React.useState<
+    FileMetadata | FolderFileEntry
+  >();
+  const [folderToDelete, setFolderToDelete] = React.useState<
+    FoldersIndexEntry
+  >();
   React.useEffect(() => {
     currentUploadingList.current = uploadingList;
   }, [uploadingList]);
@@ -408,7 +415,8 @@ const Manager = () => {
 
   const fileUploadMutex = React.useMemo(() => new Mutex(), []);
 
-  // Upload file stream
+  /*** Upload file stream ***/
+
   const uploadFile = React.useCallback(
     async (file: File, path: string) => {
       try {
@@ -555,24 +563,6 @@ const Manager = () => {
           if (curThreadNum === 0 && uploadingFileList.length === 0) {
             setUpdateCurrentFolderSwitch(!updateCurrentFolderSwitch);
           }
-          // if (path === folderPath) {
-          //   setPageLoading(true);
-
-          //   const folderMeta = await accountSystem.getFolderMetadataByPath(
-          //     folderPath
-          //   );
-
-          //   Promise.all(
-          //     folderMeta.files.map((file) =>
-          //       accountSystem._getFileMetadata(file.location).then((f) => {
-          //         return f;
-          //       })
-          //     )
-          //   ).then((processedData) => {
-          //     setFileData(processedData);
-          //     setPageLoading(false);
-          //   });
-          // }
         }
       } catch (e) {
         //console.log('catching error');
@@ -642,6 +632,7 @@ const Manager = () => {
       : curPath;
   }, []);
 
+  /***  Starting point ***/
   const selectFiles = React.useCallback(
     async (files) => {
       let addedFileList = [];
@@ -695,6 +686,7 @@ const Manager = () => {
   };
 
   /** ****  Start Logic for deletion   ***** */
+
   const deleteFile = React.useCallback(
     async (file: FileMetadata) => {
       // isFileManaging();
@@ -710,12 +702,11 @@ const Manager = () => {
         });
         bindFileSystemObjectToAccountSystem(accountSystem, fso);
         await fso.delete();
-        // toast(`${file.name} was successfully deleted.`);
-        // setFileToDelete(null);
+        setFileToDelete(null);
       } catch (e) {
         await accountSystem.removeFile(file.location);
-        // setFileToDelete(null);
-        toast.error(`An error occurred while deleting ${file.name}.`);
+        setFileToDelete(null);
+        Swal.fire(`An error occurred while deleting ${file.name}.`);
       }
     },
     [accountSystem, updateCurrentFolderSwitch]
@@ -723,6 +714,7 @@ const Manager = () => {
 
   const deleteMultiFile = React.useCallback(
     async (files: FileMetadata[]) => {
+      //isFileManaging();
       try {
         const fso = new FileSystemObject({
           handle: files[0].private.handle,
@@ -736,9 +728,11 @@ const Manager = () => {
         bindFileSystemObjectToAccountSystem(accountSystem, fso);
         await fso.deleteMultiFile(files);
         await accountSystem.removeMultiFile(files.map((item) => item.location));
+        setFileToDelete(null);
       } catch (e) {
         await accountSystem.removeMultiFile(files.map((item) => item.location));
-        toast.error(`An error occurred while deleting selected files.`);
+        setFileToDelete(null);
+        Swal.fire(`An error occurred while deleting selected files.`);
       }
     },
     [accountSystem, updateCurrentFolderSwitch]
@@ -766,38 +760,16 @@ const Manager = () => {
           (await deleteMultiFile(fileMetaListInFolder));
 
         setCount((count) => count + fileMetaListInFolder.length);
-
-        // for (const file of folderMeta.files) {
-        //   const metaFile = await accountSystem.getFileIndexEntryByFileMetadataLocation(
-        //     file.location
-        //   );
-        //   // await cancelPublicShare(metaFile);
-        //   const fso = new FileSystemObject({
-        //     handle: metaFile.private.handle,
-        //     location: undefined,
-        //     config: {
-        //       net: netMiddleware,
-        //       crypto: cryptoMiddleware,
-        //       storageNode: storageNode,
-        //     },
-        //   });
-        //   bindFileSystemObjectToAccountSystem(accountSystem, fso);
-        //   await fso.delete();
-        //   setCount((count) => count + 1);
-        // }
-
         for (const folderItem of folders) {
           await deleteFolder(folderItem);
         }
         // setCount(totalItemsToDelete);
-
         await accountSystem.removeFolderByPath(folder.path);
-
         // setCount((count) => count + 1);
       } catch (e) {
         console.error(e);
         // setFolderToDelete(null);
-        toast.error(`An error occurred while deleting Folder ${folder.path}.`);
+        Swal.fire(`An error occurred while deleting Folder ${folder.path}.`);
       }
     },
     [accountSystem, updateCurrentFolderSwitch]
@@ -822,7 +794,6 @@ const Manager = () => {
     } catch (e) {
       console.error(e);
     }
-
     return 0;
   };
 
@@ -1206,14 +1177,13 @@ const Manager = () => {
           {(() => {
             if (fileData.length === 0 && folderData.length === 0)
               return (
-                <div style={{ textAlign: 'center' }}>
-                  <p style={{ fontWeight: 'bold', opacity: 0.8 }}>
-                    There are no items in this folder
-                  </p>
-                  <p>
+                <div className="empty-list">
+                  <img src={emptyImage} />
+                  <h4>There are no items in this folder</h4>
+                  <span>
                     Drag files and folders here to upload, or click the upload
                     button on the top right to browse files from your computer.
-                  </p>
+                  </span>
                 </div>
               );
           })()}
