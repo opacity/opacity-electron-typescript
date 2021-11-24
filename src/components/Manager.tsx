@@ -114,6 +114,7 @@ const Manager = () => {
   const [updateCurrentFolderSwitch, setUpdateCurrentFolderSwitch] = useState(
     false
   );
+
   // For Upload Process Tracking
   const [uploadingList, setUploadingList] = useState<ProgressItem[]>([]);
   const currentUploadingList = React.useRef<ProgressItem[]>([]);
@@ -156,12 +157,6 @@ const Manager = () => {
   const [folderData, setFolderData] = useState<FolderMetadata[]>([]);
   const [fileData, setFileData] = useState<FileMetadata[]>([]);
   const [pageLoading, setPageLoading] = useState(false);
-  // For deletion
-  // const [fileToDelete, setFileToDelete] = useState<FolderFileEntry | null>();
-  // const [
-  //   folderToDelete,
-  //   setFolderToDelete,
-  // ] = useState<FoldersIndexEntry | null>();
   const [totalItemsToDelete, setTotalItemsToDelete] = React.useState(0);
   const [count, setCount] = React.useState(0);
 
@@ -175,13 +170,13 @@ const Manager = () => {
     []
   );
 
-  const isFileManaging = () => {
-    setIsManaging(true);
-  };
+  // const isFileManaging = () => {
+  //   setIsManaging(true);
+  // };
 
-  const OnfinishFileManaging = () => {
-    setIsManaging(false);
-  };
+  // const OnfinishFileManaging = () => {
+  //   setIsManaging(false);
+  // };
 
   useEffect(() => {
     setTimeout(async () => {
@@ -264,41 +259,42 @@ const Manager = () => {
     }
   }, [filesForZip]);
 
-  const handleCancelUpload = React.useCallback(
-    async (item) => {
-      const currentID =
-        currentUploader?.metadata?.size +
-        currentUploader?.name +
-        currentUploader?.path;
-      let cancelledId = '';
-      console.log(currentID, item.id);
-
-      if (currentID === item.id) {
-        console.log('cancelling current upload');
-        await currentUploader.cancel();
-        console.log('Upload cancelled');
-        cancelledId = currentID;
-      } else {
-        cancelledId = item.id;
-      }
-      console.log('cancelledId', cancelledId);
-      const templist = fileUploadingList;
-      const index = templist.findIndex((ele) => ele.id === cancelledId);
-      if (index > -1) {
-        templist[index].percent = 100;
-        templist[index].status = 'cancelled';
-        fileUploadingList = templist;
-        setUploadingList(templist);
-        setProcessChange({});
-      }
-    },
-    [currentUploader]
-  );
+  const handleCancelUpload = React.useCallback(async (item) => {
+    let cancelledId;
+    const threadIndex = uploaderThread.findIndex(
+      (uploader) =>
+        item.id === uploader.metadata?.size + uploader.name + uploader.path
+    );
+    console.log('thread Index::', threadIndex);
+    if (threadIndex !== -1) {
+      const uploader = uploaderThread[threadIndex];
+      console.log('start canceling');
+      await uploader.cancel();
+      console.log('end cancelling');
+      cancelledId = uploader.metadata?.size + uploader.name + uploader.path;
+    } else {
+      cancelledId = item.id;
+    }
+    let templist = fileUploadingList;
+    let index = templist.findIndex((ele) => ele.id === cancelledId);
+    if (index > -1) {
+      templist[index].percent = 100;
+      templist[index].status = 'cancelled';
+      fileUploadingList = templist;
+      setUploadingList(templist);
+      setProcessChange({});
+    }
+  }, []);
 
   const handleCancelAllUpload = React.useCallback(async () => {
+    console.log('cancel all uploading files');
     if (fileUploadingList.find((item) => item.percent !== 100)) {
-      await currentUploader.cancel();
-      const templist = fileUploadingList.map((item) => {
+      for (const uploader of uploaderThread) {
+        console.log(uploader);
+        uploader.cancel();
+        setLoading(true);
+      }
+      let templist = fileUploadingList.map((item) => {
         return item.percent !== 100
           ? {
               ...item,
@@ -311,7 +307,7 @@ const Manager = () => {
       setUploadingList(templist);
       setProcessChange({});
     }
-  }, [currentUploader]);
+  }, []);
 
   const addNewFolder = React.useCallback(
     async (folderName) => {
@@ -419,9 +415,8 @@ const Manager = () => {
 
   const uploadFile = React.useCallback(
     async (file: File, path: string) => {
+      let toastID = file.size + file.name + path;
       try {
-        const toastID = file.size + file.name + path;
-
         const index = fileUploadingList.findIndex((ele) => ele.id === toastID);
         if (index > -1 && fileUploadingList[index].status === 'cancelled') {
           const fileIndex = uploadingFileList.findIndex(
@@ -439,7 +434,6 @@ const Manager = () => {
         }
 
         console.log('logging on upload File 1');
-
         // const release = await fileUploadMutex.acquire();
 
         const upload = new OpaqueUpload({
@@ -467,7 +461,6 @@ const Manager = () => {
           const nextFilePath = pathGenerator(nextFile, folderPath);
           uploadFile(nextFile, nextFilePath);
         }
-        //console.log('logging 2');
         // side effects
         bindUploadToAccountSystem(accountSystem, upload);
 
@@ -519,20 +512,18 @@ const Manager = () => {
         try {
           const stream = await upload.start();
 
-          console.log('logging3: inner try');
+          console.log('uploading....');
           if (stream) {
-            // TODO: Why does it do this?
             fileStream.pipeThrough(
               (stream as TransformStream<Uint8Array, Uint8Array>) as any
             );
           }
 
           await upload.finish();
-
           console.log('logging4: upload finish');
+
           const templistdone = fileUploadingList;
           const index = templistdone.findIndex((ele) => ele.id === toastID);
-
           if (index > -1) {
             templistdone[index].percent = 100;
             templistdone[index].status = 'completed';
@@ -542,10 +533,6 @@ const Manager = () => {
             setProcessChange({});
           }
         } finally {
-          //console.log('Finally');
-          //release();
-          //console.log('released');
-
           curThreadNum--;
           const threadIndex = uploaderThread.findIndex(
             (item) => toastID === item.metadata?.size + file.name + item.path
@@ -565,8 +552,6 @@ const Manager = () => {
           }
         }
       } catch (e) {
-        //console.log('catching error');
-        // console.error(e);
         curThreadNum--;
 
         const threadIndex = uploaderThread.findIndex(
@@ -578,7 +563,7 @@ const Manager = () => {
         }
         if (curThreadNum < THREAD_COUNT && uploadingFileList.length > 0) {
           const nextFile = uploadingFileList[0];
-          const nextFilePath = pathGenerator(nextFile, currentPath);
+          const nextFilePath = pathGenerator(nextFile, folderPath);
           uploadFile(nextFile, nextFilePath);
         }
 
@@ -621,7 +606,7 @@ const Manager = () => {
   );
 
   const pathGenerator = React.useCallback((file, curPath) => {
-    return file.name === (file.path || file.webkitRelativePath || file.name)
+    const folderPath = file.path
       ? curPath
       : curPath === '/'
       ? file.webkitRelativePath
@@ -630,6 +615,7 @@ const Manager = () => {
       : file.webkitRelativePath
       ? `${curPath}/${relativePath(file.webkitRelativePath)}`
       : curPath;
+    return folderPath;
   }, []);
 
   /***  Starting point ***/
@@ -638,7 +624,6 @@ const Manager = () => {
       let addedFileList = [];
 
       //isFileManaging();
-
       files.forEach((file: File) => {
         const path = pathGenerator(file, folderPath);
         const toastID = file.size + file.name + path;
