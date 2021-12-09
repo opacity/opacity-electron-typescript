@@ -606,7 +606,7 @@ const Manager = () => {
   );
 
   const pathGenerator = React.useCallback((file, curPath) => {
-    const folderPath = file.path
+    return file.name === (file.path || file.webkitRelativePath || file.name)
       ? curPath
       : curPath === '/'
       ? file.webkitRelativePath
@@ -615,7 +615,6 @@ const Manager = () => {
       : file.webkitRelativePath
       ? `${curPath}/${relativePath(file.webkitRelativePath)}`
       : curPath;
-    return folderPath;
   }, []);
 
   /***  Starting point ***/
