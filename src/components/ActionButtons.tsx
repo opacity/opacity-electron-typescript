@@ -1,22 +1,23 @@
 import { ipcRenderer } from 'electron';
-import React, { useState, useRef, ReactNode } from 'react';
-import { OverlayTrigger, Tooltip } from 'react-bootstrap';
-import Button from 'react-bootstrap/Button';
-import ButtonGroup from 'react-bootstrap/ButtonGroup';
+import React, { useState, useEffect, useRef, ReactNode } from 'react';
+import { OverlayTrigger, Tooltip, Button, ButtonGroup } from 'react-bootstrap';
+
 import {
   AiFillFolderAdd,
   AiFillQuestionCircle,
   AiOutlineCloudUpload,
   AiOutlineDelete,
   AiOutlineDownload,
-  AiOutlineSelect,
+  //AiOutlineSelect,
   AiOutlineUpload,
 } from 'react-icons/ai';
+
 import { FiCheck, FiLogOut } from 'react-icons/fi';
 import { useHistory } from 'react-router-dom';
 import Swal from 'sweetalert2';
 
 const shell = require('electron').shell;
+const app = require('electron').remote.app;
 
 type UploadFormProps = {
   children: ReactNode | ReactNode[] | null;
@@ -45,6 +46,7 @@ const UploadForm: React.FC<UploadFormProps> = ({
       // files = files.filter((file) => file.size <= FILE_MAX_SIZE);
       onSelected(files);
     }
+    console.log(files);
   };
 
   return (
@@ -166,13 +168,8 @@ const ActionButtons = ({
         }
       },
     });
-
     if (folderName) {
-      Swal.fire(
-        '',
-        `Folder ${folderName} was successfully created.`,
-        'success'
-      );
+      Swal.fire(`Folder ${folderName} was successfully created.`, 'success');
       addFolder(folderName);
     }
   }
@@ -185,9 +182,7 @@ const ActionButtons = ({
 
   const handleLogout = () => {
     window.localStorage.removeItem('handle');
-
     window.localStorage.removeItem('autoLogin');
-
     history.push('/');
   };
 
@@ -202,6 +197,51 @@ const ActionButtons = ({
       uploadFunc(files);
     }
   };
+
+  //menu item calling part
+  useEffect(() => {
+    ipcRenderer.on('new-folder', () => {
+      newFolder();
+    });
+  }, []);
+
+  useEffect(() => {
+    ipcRenderer.on('upload-folder', () => {
+      console.log('Uploadfolder called');
+    });
+  }, []);
+
+  useEffect(() => {
+    ipcRenderer.on('upload-file', () => {
+      console.log('UploadFile called');
+    });
+  }, []);
+
+  useEffect(() => {
+    ipcRenderer.on('about-panel', () => {
+      app.setAboutPanelOptions({
+        applicationName: 'Opacity desktop app',
+        applicationVersion: '2.0.0',
+        version: 'Version 2.0',
+        credits: 'Opacity',
+        copyright: 'Copyright Opacity',
+        iconPath: '../../icon.svg',
+      });
+      app.showAboutPanel();
+    });
+  }, []);
+
+  useEffect(() => {
+    ipcRenderer.on('download-file', () => {
+      console.log('Download func called.');
+    });
+  }, []);
+
+  useEffect(() => {
+    ipcRenderer.on('logout-app', () => {
+      handleLogout();
+    });
+  }, []);
 
   return (
     <ButtonGroup className="action-buttons">
