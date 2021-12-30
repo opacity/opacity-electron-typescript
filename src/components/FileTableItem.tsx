@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
+import { ipcRenderer } from 'electron';
 import Moment from 'react-moment';
 import Filesize from 'filesize';
 import Button from 'react-bootstrap/Button';
@@ -31,6 +32,14 @@ const FileTableItem = ({
     Clipboardy.write('https://opacity.io/share#handle=' + handle);
     Swal.fire('', 'Copied the link to your clipboard!', 'success');
   };
+  const renameRef = useRef(null);
+
+  useEffect(() => {
+    ipcRenderer.on('rename-file', () => {
+      renameRef.current.click();
+      console.log('rename called.');
+    });
+  }, []);
 
   return (
     <tr>
@@ -72,7 +81,7 @@ const FileTableItem = ({
             placement="top"
             overlay={<Tooltip id="rename_file">Rename file</Tooltip>}
           >
-            <Button onClick={() => renameFunc(file, false)}>
+            <Button onClick={() => renameFunc(file, false)} ref={renameRef}>
               <FiEdit />
             </Button>
           </OverlayTrigger>

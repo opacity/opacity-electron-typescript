@@ -88,6 +88,7 @@ const ActionButtons = ({
   const uploadFileInput = useRef(null);
   const uploadFolderInput = useRef(null);
   const [isDirectory, setIsDirectory] = useState(false);
+  const buttonRef = useRef(null);
 
   async function cutAndPaste(paste = true) {
     if (cutButton.cut) {
@@ -233,6 +234,7 @@ const ActionButtons = ({
 
   useEffect(() => {
     ipcRenderer.on('download-file', () => {
+      buttonRef.current.click();
       console.log('Download func called.');
     });
   }, []);
@@ -256,6 +258,7 @@ const ActionButtons = ({
             disabled={!massButtons}
             onClick={() => downloadFunc()}
             className="ms-5"
+            ref={buttonRef}
           >
             <AiOutlineDownload size={24} />
             &nbsp;Download
