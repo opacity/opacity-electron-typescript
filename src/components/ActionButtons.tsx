@@ -223,9 +223,8 @@ const ActionButtons = ({
       app.setAboutPanelOptions({
         applicationName: 'Opacity desktop app',
         applicationVersion: '2.0.0',
-        version: 'Version 2.0',
-        credits: 'Opacity',
-        copyright: 'Copyright Opacity',
+        version: 'Opacity Drive 0.1.3',
+        copyright: 'Copyright 2018-2022 Opacity',
         iconPath: '../../icon.svg',
       });
       app.showAboutPanel();

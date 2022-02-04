@@ -85,23 +85,25 @@ export default class MenuBuilder {
             this.mainWindow.webContents.send('new-folder');
           },
         },
+        { type: 'separator' },
         {
           label: 'Upload File(s)',
           click: () => {
             this.mainWindow.webContents.send('upload-file');
           },
         },
-        { type: 'separator' },
         {
           label: 'Upload Folder(s)',
           click: () => {
             this.mainWindow.webContents.send('upload-folder');
           },
         },
+        { type: 'separator' },
         {
           label: 'Share',
           submenu: [{ label: 'Private Share' }, { label: 'Public Share' }],
         },
+        { type: 'separator' },
         {
           label: 'Download',
           click: () => {
