@@ -846,20 +846,29 @@ const Manager = () => {
   };
 
   const FilterbyName = async (e) => {
+    console.log('func called');
     console.log(searchname);
-    // e.stopPropagation();
-    // if (selectedFiles.length) {
-    //   setSelectedFiles([]);
-    // } else {
-    //   let fileMetaValues = fileMetaList;
-
-    //   if (!fileMetaList) {
-    //     await getFolderMetaList();
-    //     fileMetaValues = await getFileMetaList();
-    //   }
-
-    //   setSelectedFiles(fileMetaValues.filter((item) => "uploaded" in item));
-    // }
+    if (searchname.length) {
+      let filterfileList = [];
+      let fileterfolderList = [];
+      console.log(fileData);
+      console.log(folderData);
+      fileData.forEach((file) => {
+        if (file.name.includes(searchname)) {
+          filterfileList.push(file);
+        }
+      });
+      folderData.forEach((folder) => {
+        if (folder.path.includes(searchname)) {
+          fileterfolderList.push(folder);
+        }
+      });
+      setFileData(filterfileList);
+      setFolderData(fileterfolderList);
+    } else {
+      toast.info('Search string empty!!');
+      setUpdateCurrentFolderSwitch(!updateCurrentFolderSwitch);
+    }
   };
 
   const onDrop = React.useCallback(
