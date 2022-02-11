@@ -142,3 +142,14 @@ th {
     color: #b7b7c4;
   }
 }
+
+.searchbox-container {
+  display: flex;
+  right: 60px;
+  margin-top: 10px;
+  justify-content: flex-end;
+  .searchbox-input {
+    width: 250px;
+    margin-right: 10px;
+  }
+}
